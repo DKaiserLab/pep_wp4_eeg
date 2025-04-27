@@ -5,3 +5,4 @@ Dinge, die noch angepasst werden müssen:
 - evtl. target-Image nach Frage verkleinern/farblich kennzeichnen
 - Bildschirmgröße, Abstand
 - Eye-Tracking
+- helpfile entfernen
