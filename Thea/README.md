@@ -6,3 +6,4 @@ Dinge, die noch angepasst werden müssen:
 - Bildschirmgröße, Abstand
 - Eye-Tracking
 - helpfile entfernen
+- accuracy berechnen
