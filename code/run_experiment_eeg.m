@@ -93,7 +93,7 @@ else
 end
 
 %[window, windowRect] = Screen('OpenWindow', screenNumber, [Color.gray], [], 32, 2,[], [],  kPsychNeed32BPCFloat);
-[window, windowRect] = Screen('OpenWindow', screenNumber, [Color.gray]); % für Mac
+[window, windowRect] = Screen('OpenWindow', screenNumber, [Color.gray]); % for Mac
 [xCenter, yCenter] = RectCenter(windowRect);
 ifi = Screen('GetFlipInterval', window);  % Get refresh interval
 Screen('TextSize', window, 40) % define font size
@@ -102,12 +102,10 @@ Screen('Flip', window);  % Show fixation cross
 HideCursor; % Hide mouse cursor
 
 %% Load all images as textures
-%bathroomTextures = cell(1, length(bathroomImages));
 for i = 1:length(bathroomImages)
     bathroomTextures(i) = Screen('MakeTexture', window, imread(fullfile(bathroomImages(i).folder, bathroomImages(i).name)));
 end
 
-%kitchenTextures = cell(1, length(kitchenImages));
 for i = 1:length(kitchenImages)
     kitchenTextures(i) = Screen('MakeTexture', window, imread(fullfile(kitchenImages(i).folder, kitchenImages(i).name)));
 end
@@ -145,9 +143,13 @@ small_image_rect = CenterRectOnPointd([0 0 sizePixX*0.8 sizePixY*0.8], xCenter, 
 %% Initialize keyboard
 KbName('UnifyKeyNames');
 abortKey = KbName('ESCAPE');
+
 % define target keys
 presentKey = 37;
 absentKey = 39;
+
+%% Initialize overall accuracy
+overallAccuracy = [];
 
 %% start for-loop
 try
@@ -167,7 +169,7 @@ try
 
         % randomize trial order
         % Ensure reproducible order across participants
-        rng(i);  % Run number as seed
+        rng(i);  % block number as seed
 
         % get iti distribution
         itiDist = linspace(0.65, 0.75, 100);
@@ -179,7 +181,7 @@ try
         blkImgs.texture = runTextures';
         blkImgs.category = repmat({currentCategory}, 1, length(runTextures))';
         blkImgs.imgName = {blockImages.name}';
-        %blkImgs.EEGtirgger = [num2str(blkImgs.texture), num2str(repmat(i,1,100))];
+        %blkImgs.EEGtrigger = [num2str(blkImgs.texture), num2str(repmat(i,1,100))];
         blkImgs.iti = itiDist';
 
         % Shuffle rows
@@ -199,7 +201,7 @@ try
         if testrun
             targetNum = numel(targetStruct);
         else
-            targetNum = i; %str2double(str2double(i)); % = i
+            targetNum = i; %str2double(str2double(i));
         end
 
         % init accuracy vector
@@ -207,170 +209,170 @@ try
 
 
         % Experiment Start
-        try
-            %         KbWait; % Wait for any key press in dummy mode
+
+        %         KbWait; % Wait for any key press in dummy mode
 
 
-            trialOnsets = nan(1, numTrials);  % Store trial onset times
-            itiOnsets = nan(1, numTrials);  % Store ITI onset times
-            trialEnd = nan(1, numTrials);  % Store trial end
-            responseTimes = nan(1, numTrials);  % Store response times
-            responseKeys = cell(1, numTrials);  % Store response keys
-            trialAccuracy = nan(1, numTrials);  % Store response accuracy
+        trialOnsets = nan(1, numTrials);  % Store trial onset times
+        itiOnsets = nan(1, numTrials);  % Store ITI onset times
+        trialEnd = nan(1, numTrials);  % Store trial end
+        responseTimes = nan(1, numTrials);  % Store response times
+        responseKeys = cell(1, numTrials);  % Store response keys
+        trialAccuracy = nan(1, numTrials);  % Store response accuracy
 
-            % Display fixation cross before the trial
+        % Display fixation cross before the trial
+        DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
+        Screen('Flip', window);  % Show fixation cross
+
+        % Wait for initial start pad
+        WaitSecs(cfg.startPad);
+
+        % Loop through all trials in the block
+        for iImg = 1:height(blkImgs)
+
+            % Initialize trial
+            %cfg.iti = 0.75 * cfg.... + rand
+            trialDuration = cfg.imageDuration + blkImgs.iti(i);
+            responseFlag = false;
+            itiFlag = false;
+            responseTimes(iImg) = NaN;
+            responseKeys{iImg} = 'none';
+            trialAccuracy(iImg) = NaN;
+            elapsedTime = 0;
+            triggerTimeStamp = i;
+            triggerDate = blkImgs.texture(iImg);
+
+            % Present image
+            Screen('DrawTexture', window, blkImgs.texture(iImg), [], image_rect);
             DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
-            Screen('Flip', window);  % Show fixation cross
+            trialOnsets(iImg) = Screen('Flip', window);  % Get trial onset time
 
-            % Wait for initial start pad (4s)
-            WaitSecs(cfg.startPad);
+            % trial timing
+            while elapsedTime < trialDuration - ifi * 0.75
 
-            % Loop through all trials in the block
-            for iImg = 1:height(blkImgs)
+                [keyIsDown, ~, keyCode] = KbCheck;
 
-                % Initialize trial
-                %cfg.iti = 0.75 * cfg.... + rand
-                trialDuration = cfg.imageDuration + blkImgs.iti(i);
-                responseFlag = false;
-                itiFlag = false;
-                responseTimes(iImg) = NaN;
-                responseKeys{iImg} = 'none';
-                trialAccuracy(iImg) = NaN;
-                elapsedTime = 0;
-                triggerTimeStamp = i;
-                triggerDate = blkImgs.texture(iImg);
-
-                % Present image
-                Screen('DrawTexture', window, blkImgs.texture(iImg), [], image_rect);
-                DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
-                trialOnsets(iImg) = Screen('Flip', window);  % Get trial onset time
-
-                % trial timing
-                while elapsedTime < trialDuration - ifi * 0.75
-
-                    [keyIsDown, ~, keyCode] = KbCheck;
-
-                    % Abort experiment when ESC is pressed
-                    if keyCode(abortKey)
-                        error('Experiment aborted by user')
-                    end
-
-                    % Show fixation cross after 250 ms
-                    if ~itiFlag && elapsedTime > cfg.imageDuration - ifi * 0.5
-                        % Inter-trial interval (ITI)
-                        DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Show fixation cross during ITI
-                        itiOnsets(iImg) = Screen('Flip', window);  % Show fixation cross
-                        itiFlag = true;
-                    end
-
-                    % Update timer
-                    elapsedTime = GetSecs - trialOnsets(iImg);
+                % Abort experiment when ESC is pressed
+                if keyCode(abortKey)
+                    error('Experiment aborted by user')
                 end
 
-                % Log trial end time
-                trialEnd(iImg) = GetSecs;
-
-                % check if target trial
-                if ismember(iImg, targetStruct(targetNum).trialNum)
-
-                    % get target trial
-                    targetIdx = find(iImg == targetStruct(targetNum).trialNum);
-
-                    % check if target image is correct
-                    if strcmp(targetStruct(targetNum).imgName{targetIdx}, ...
-                            blkImgs.imgName{iImg})
-                        disp('Correct target was selected')
-                    else
-                        disp(['Selected target: ', targetStruct(targetNum).imgName{targetIdx}])
-                        disp(['Current trial: ',  blkImgs.imgName{iImg}])
-                        error('Target names do not match')
-                    end
-
-                    % show target message
-                    targetMsg = 'Was the following image the same as before?';
-                    DrawFormattedText(window, targetMsg, 'center', small_image_rect(2) - 30 , [0 0 0]);
-
-                    % show target
-                    targetImg = targetStruct(targetNum).showedImgName{targetIdx};
-                    rowIdx = find(strcmp(blkImgs.imgName, targetImg));
-                    targetImgTexture = blkImgs.texture(rowIdx(1));
-
-                    Screen('DrawTexture', window, targetImgTexture, [], small_image_rect);
-                    DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
-                    qTime = Screen('Flip', window);
-
-                    % Wait for response
-                    responseFlag = false;
-                    while ~responseFlag
-                        % Check for button press (target detection task)
-                        [keyIsDown, responseTime, keyCode] = KbCheck;
-
-                        if keyIsDown
-                            % Abort experiment when ESC is pressed
-                            if keyCode(abortKey)
-                                error('Experiment aborted by user')
-                            end
-                        end
-
-                        % Store first button press
-                        if keyIsDown && ~responseFlag
-                            responseTimes(iImg) = responseTime;
-                            responseKeys{iImg} = num2str(find(keyCode));
-
-                            % show fixation cross after response is provided
-                            DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Show fixation cross during ITI
-                            Screen('Flip', window);
-                            responseFlag = true;
-                        end
-
-                    end
-
-                    % get accuracy if response was recorded
-                    if strcmp(responseKeys{iImg}, 'none')
-                        accuracy(targetIdx) = NaN;
-                    else
-                        if targetStruct(targetNum).targetPresent(targetIdx) == 1
-                            accuracy(targetIdx) = str2double(responseKeys{iImg}) == presentKey;
-                        else
-                            accuracy(targetIdx) = str2double(responseKeys{iImg}) == absentKey;
-                        end
-                        trialAccuracy(iImg) = accuracy(targetIdx);
-                    end
+                % Show fixation cross after 250 ms
+                if ~itiFlag && elapsedTime > cfg.imageDuration - ifi * 0.5
+                    % Inter-trial interval (ITI)
+                    DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Show fixation cross during ITI
+                    itiOnsets(iImg) = Screen('Flip', window);  % Show fixation cross
+                    itiFlag = true;
                 end
 
-                % Display fixation cross before the next trial
-                DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
-                Screen('Flip', window);  % Show fixation cross
-                WaitSecs(0.75 * cfg.debugTimingFactor); % hier stand 2
-                %end
-
-                fprintf(fileID, '%s\t%d\t%d\t%d\t%s\t%s\t%.6f\t%.6f\t%.6f\t%s\t%s\t%.6f\t%.6f\n', ...
-                    cfg.subjectID, i, iImg,...
-                    blkImgs.texture(iImg), char(blkImgs.category(iImg)), char(blkImgs.imgName(iImg)), ...
-                    trialOnsets(iImg), itiOnsets(iImg), trialEnd(iImg), char(triggerDate), ...
-                    responseKeys{iImg}, responseTimes(iImg), trialAccuracy(iImg));
+                % Update timer
+                elapsedTime = GetSecs - trialOnsets(iImg);
             end
 
-        catch ME
-            % Handle errors
-            fprintf('An error occurred: %s\n', ME.message);
-            Screen('CloseAll');  % Ensure the screen is closed in case of an error
-            fclose(fileID);  % Close log file if open
-            fclose(helpfileID);  % Close log file if open
-            ShowCursor;
+            % Log trial end time
+            trialEnd(iImg) = GetSecs;
+
+            % check if target trial
+            if ismember(iImg, targetStruct(targetNum).trialNum)
+
+                % get target trial
+                targetIdx = find(iImg == targetStruct(targetNum).trialNum);
+
+                % check if target image is correct
+                if strcmp(targetStruct(targetNum).imgName{targetIdx}, ...
+                        blkImgs.imgName{iImg})
+                    disp('Correct target was selected')
+                else
+                    disp(['Selected target: ', targetStruct(targetNum).imgName{targetIdx}])
+                    disp(['Current trial: ',  blkImgs.imgName{iImg}])
+                    error('Target names do not match')
+                end
+
+                % show target message
+                targetMsg = 'Was the following image the same as before?';
+                DrawFormattedText(window, targetMsg, 'center', small_image_rect(2) - 30 , [0 0 0]);
+
+                % show target
+                targetImg = targetStruct(targetNum).showedImgName{targetIdx};
+                rowIdx = find(strcmp(blkImgs.imgName, targetImg));
+                targetImgTexture = blkImgs.texture(rowIdx(1));
+
+                Screen('DrawTexture', window, targetImgTexture, [], small_image_rect);
+                DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
+                qTime = Screen('Flip', window);
+
+                % Wait for response
+                responseFlag = false;
+                while ~responseFlag
+                    % Check for button press (target detection task)
+                    [keyIsDown, responseTime, keyCode] = KbCheck;
+
+                    if keyIsDown
+                        % Abort experiment when ESC is pressed
+                        if keyCode(abortKey)
+                            error('Experiment aborted by user')
+                        end
+                    end
+
+                    % Store first button press
+                    if keyIsDown && ~responseFlag
+                        responseTimes(iImg) = responseTime;
+                        responseKeys{iImg} = num2str(find(keyCode));
+
+                        % show fixation cross after response is provided
+                        DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Show fixation cross during ITI
+                        Screen('Flip', window);
+                        responseFlag = true;
+                    end
+
+                end
+
+                % get accuracy if response was recorded
+                if strcmp(responseKeys{iImg}, 'none')
+                    accuracy(targetIdx) = NaN;
+                else
+                    if targetStruct(targetNum).targetPresent(targetIdx) == 1
+                        accuracy(targetIdx) = str2double(responseKeys{iImg}) == presentKey;
+                    else
+                        accuracy(targetIdx) = str2double(responseKeys{iImg}) == absentKey;
+                    end
+                    trialAccuracy(iImg) = accuracy(targetIdx);
+                end
+            end
+
+            % Display fixation cross before the next trial
+            DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
+            Screen('Flip', window);  % Show fixation cross
+            WaitSecs(0.75 * cfg.debugTimingFactor); % hier stand 2
+            %end
+
+            fprintf(fileID, '%s\t%d\t%d\t%d\t%s\t%s\t%.6f\t%.6f\t%.6f\t%s\t%s\t%.6f\t%.6f\n', ...
+                cfg.subjectID, i, iImg,...
+                blkImgs.texture(iImg), char(blkImgs.category(iImg)), char(blkImgs.imgName(iImg)), ...
+                trialOnsets(iImg), itiOnsets(iImg), trialEnd(iImg), char(triggerDate), ...
+                responseKeys{iImg}, responseTimes(iImg), trialAccuracy(iImg));
         end
 
+        % show feedback message
+        feedbackMsg = sprintf('End of block %d.\n You answered %d % of the questions correctly.', i, round(mean(accuracy, 'omitnan')*100));
+        DrawFormattedText(window, feedbackMsg, 'center', 'center', [0 0 0]);
+        Screen('Flip', window);
+        WaitSecs(2)
+
         % Pause after block
-        pauseText = sprintf('End of block %d (%s).\n You can take a short break.\nPress any key to continue.', i, currentCategory);
+        pauseText = 'You can take a short break.\n Press any key to continue.';
         DrawFormattedText(window, pauseText, 'center', 'center', [0 0 0]);
         Screen('Flip', window);
         KbWait;
+
+        % add accuracy
+        overallAccuracy = [overallAccuracy accuracy];
 
     end % end for-loop
 
     % show feedback message
     feedbackMsg = ['The end', newline,...
-        'You answered ', num2str(round(mean(accuracy, 'omitnan')*100)), ...
+        'You answered ', num2str(round(mean(overallAccuracy, 'omitnan')*100)), ...
         '% of the questions correctly', newline, ...
         'Thank you!'];
     DrawFormattedText(window, feedbackMsg, 'center', 'center', [0 0 0]);
@@ -395,7 +397,7 @@ catch ME
     % Handle errors
     fprintf('An error occurred: %s\n', ME.message);
     Screen('CloseAll');  % Ensure the screen is closed in case of an error
-    %         fclose(fileID);  % Close log file if open
-    %         fclose(helpfileID);  % Close log file if open
+    fclose(fileID);  % Close log file if open
+    fclose(helpfileID);  % Close log file if open
     ShowCursor;
 end
