@@ -10,14 +10,14 @@ cfg.date = datetime('today');
 %% General Experiment Configuration
 testrun = false;
 
-cfg.debugTimingFactor = 1; % Must be 1 for accurat timing (< 1 will give faster timing)
+cfg.debugTimingFactor = 0.2; % Must be 1 for accurat timing (< 1 will give faster timing)
 cfg.imageDuration = 0.25 * cfg.debugTimingFactor;  % Image presentation time in seconds
 cfg.iti = 0.75 * cfg.debugTimingFactor;  % Inter-trial interval in seconds
 cfg.startPad = 2 * cfg.debugTimingFactor;  % Time before the first trial in seconds
 cfg.endPad = 2 * cfg.debugTimingFactor;  % Time after the last trial in seconds
 cfg.ImageFileFormat = 'tif';
 
-numBlocks = 20;
+numBlocks = 2;
 categories = {'kitchen', 'bathroom'};
 
 %% Paths
@@ -37,27 +37,27 @@ kitchenImages = dir(fullfile(stimPath, 'kitchen', ['*.', cfg.ImageFileFormat]));
 bathroomImages = dir(fullfile(stimPath, 'bathroom', ['*.', cfg.ImageFileFormat]));
 
 if testrun
-    kitchenImages = kitchenImages(1:20);
-    bathroomImages = bathroomImages(1:20);
+    kitchenImages = kitchenImages(1:10);
+    bathroomImages = bathroomImages(1:10);
 end
 numKitchenTrials = length(kitchenImages)*2; % ?
 numBathroomTrials = length(bathroomImages)*2;
 
-%% Help File Setup
-helpPath = fullfile(pwd,'..','helpdata');
-runHelpFile = fullfile(helpPath, 'permutations.tsv');
-% Make sure helpPath exists
-if ~exist(helpPath, 'dir')
-    mkdir(helpPath);
-end
-% Check if file name exists already to avoid overwriting 
-if exist(runHelpFile, 'file')
-    error('File name exists already')
-end 
-helpfileID = fopen(runHelpFile, 'w');
-
-% Write header for the log file
-fprintf(helpfileID, 'block\timgnumber\tcategory\timagename\n');
+% %% Help File Setup
+% helpPath = fullfile(pwd,'..','helpdata');
+% runHelpFile = fullfile(helpPath, 'permutations.tsv');
+% % Make sure helpPath exists
+% if ~exist(helpPath, 'dir')
+%     mkdir(helpPath);
+% end
+% % Check if file name exists already to avoid overwriting 
+% if exist(runHelpFile, 'file')
+%     error('File name exists already')
+% end 
+% helpfileID = fopen(runHelpFile, 'w');
+% 
+% % Write header for the log file
+% fprintf(helpfileID, 'block\timgnumber\tcategory\timagename\n');
 
 %% Output File Setup
 % BIDS-compliant log file
@@ -141,8 +141,11 @@ image_rect = CenterRectOnPointd([0 0 sizePixX sizePixY], xCenter, yCenter);
 KbName('UnifyKeyNames');
 abortKey = KbName('ESCAPE');
 % define target keys
-presentKey = 37;
-absentKey = 39;
+presentKey = 79;%37;
+absentKey = 80;%39;
+
+%% Initialize overall accuracy
+overallAccuracy = [];
 
 %% start for-loop
 try
@@ -177,11 +180,11 @@ for i = 1:numBlocks
     
     blkImgs = [blkImgs1; blkImgs2];
 
-    % help file loggen
-    for iImg = 1:height(blkImgs)
-    fprintf(helpfileID, '%d\t%d\t%s\t%s\n', ...
-        i, iImg, char(blkImgs.category(iImg)), char(blkImgs.imgName(iImg)));
-    end
+%     % help file loggen
+%     for iImg = 1:height(blkImgs)
+%     fprintf(helpfileID, '%d\t%d\t%s\t%s\n', ...
+%         i, iImg, char(blkImgs.category(iImg)), char(blkImgs.imgName(iImg)));
+%     end
 
     % get targets
     load(fullfile(functionPath, 'targets.mat'), 'targetStruct')
@@ -196,9 +199,7 @@ for i = 1:numBlocks
     
     
     % Experiment Start
-    try
 %         KbWait; % Wait for any key press in dummy mode
-        
 
         trialOnsets = nan(1, numTrials);  % Store trial onset times
         itiOnsets = nan(1, numTrials);  % Store ITI onset times
@@ -333,7 +334,7 @@ for i = 1:numBlocks
                 DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
                 Screen('Flip', window);  % Show fixation cross
                 WaitSecs(0.75 * cfg.debugTimingFactor); % hier stand 2
-        %end
+        end
     
             fprintf(fileID, '%s\t%s\t%d\t%d\t%s\t%s\t%.6f\t%.6f\t%.6f\t%s\t%.6f\t%.6f\t%s\t%.6f\t%.6f\n', ...
                 cfg.subjectID, i, iImg,...
@@ -341,17 +342,11 @@ for i = 1:numBlocks
                 trialOnsets(iImg), itiOnsets(iImg), trialEnd(iImg), ...
                 char(triggerDate), triggerTimeStamp, trialOnsets(iImg) - triggerTimeStamp,...
                 responseKeys{iImg}, responseTimes(iImg), trialAccuracy(iImg)); 
-        end
+%         end
     
-        catch ME
-        % Handle errors
-        fprintf('An error occurred: %s\n', ME.message);
-        Screen('CloseAll');  % Ensure the screen is closed in case of an error
-        fclose(fileID);  % Close log file if open
-        fclose(helpfileID);  % Close log file if open
-        ShowCursor;
-    end
-    
+    % add accuracy
+    overallAccuracy = [overallAccuracy accuracy];
+
     % Pause after block
         pauseText = sprintf('End of block %d (%s).\n You can take a short break.\nPress any key to continue.', i, currentCategory);
         DrawFormattedText(window, pauseText, 'center', 'center', [0 0 0]);
@@ -360,9 +355,9 @@ for i = 1:numBlocks
 
 end % end for-loop
 
-% show feedback message
+show feedback message
 feedbackMsg = ['The end', newline,...
-    'You answered ', num2str(round(mean(accuracy, 'omitnan')*100)), ...
+    'You answered ', num2str(round(mean(overallAccuracy, 'omitnan')*100)), ...
     '% of the questions correctly', newline, ...
     'Thank you!'];
 DrawFormattedText(window, feedbackMsg, 'center', 'center', [0 0 0]);
@@ -373,7 +368,7 @@ WaitSecs(5 * cfg.debugTimingFactor);
 
 % Close log file
 fclose(fileID);
-fclose(helpfileID);
+% fclose(helpfileID);
 
 % Close Psychtoolbox Screen
 Screen('CloseAll');
@@ -387,7 +382,7 @@ catch ME
         % Handle errors
         fprintf('An error occurred: %s\n', ME.message);
         Screen('CloseAll');  % Ensure the screen is closed in case of an error
-%         fclose(fileID);  % Close log file if open
+        fclose(fileID);  % Close log file if open
 %         fclose(helpfileID);  % Close log file if open
         ShowCursor;
 end
