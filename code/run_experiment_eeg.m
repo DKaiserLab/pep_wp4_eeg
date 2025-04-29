@@ -4,12 +4,20 @@
 clear; close all
 
 %% Collect subject ID
-subjectID = input('Enter subject number: ', 's');
-date = datetime('today');
+dat.subjectID = input('Enter subject number: ', 's');
+
+% Additional metadata
+dat.date = datestr(now, 'yyyy-mm-dd');
+dat.time = datestr(now, 'HH:MM:SS');
+dat.recordingModality = 'eye-tracking and eeg';
+dat.viewing_dist_cm = 68;
+dat.recordingLocation = 'math. dept. JLU Giessen';
+dat.project = 'PEP_WP4_eeg';
 
 %% General Experiment Configuration
 testrun = false;
 eegMode = false;
+eyeTrackingMode = false;
 debugTimingFactor = 1; % Must be 1 for accurat timing (< 1 will give faster timing)
 imageDuration = 0.25 * debugTimingFactor;  % Image presentation time in seconds
 startPad = 2 * debugTimingFactor;  % Time before the first trial in seconds
@@ -22,7 +30,7 @@ categories = {'kitchen', 'bathroom'};
 
 %% Paths
 stimPath = fullfile(pwd,'..', 'stimuli');
-outputPath = fullfile(pwd,'..', 'sourcedata', ['sub-', subjectID], 'beh');
+outputPath = fullfile(pwd,'..', 'sourcedata', ['sub-', dat.subjectID], 'beh');
 functionPath = fullfile(pwd,'utilities');
 
 % add functions folder to path
@@ -63,7 +71,7 @@ numBathroomTrials = length(bathroomImages)*2;
 
 %% Output File Setup
 % BIDS-compliant log file
-runOutputFile = fullfile(outputPath, sprintf('sub-%s_task-main_events.tsv', subjectID));
+runOutputFile = fullfile(outputPath, sprintf('sub-%s_task-eye-tracking-eeg_events.tsv', dat.subjectID));
 
 % Check if file name exists already to avoid overwriting
 if exist(runOutputFile, 'file')
@@ -101,25 +109,16 @@ DrawFormattedText(window, 'Loading...', 'center', 'center', [0 0 0]);
 Screen('Flip', window);  % Show fixation cross
 HideCursor; % Hide mouse cursor
 
-%% Load all images as textures
-for i = 1:length(bathroomImages)
-    bathroomTextures(i) = Screen('MakeTexture', window, imread(fullfile(bathroomImages(i).folder, bathroomImages(i).name)));
-end
-
-for i = 1:length(kitchenImages)
-    kitchenTextures(i) = Screen('MakeTexture', window, imread(fullfile(kitchenImages(i).folder, kitchenImages(i).name)));
-end
-
 %% Calculate size for desired degree of visual angle
 
 % define visual angle
 x_degree = 8;
 y_degree = 6;
 
-% Get the screen resolution and viewing distance
-viewing_dist = 50;
-screen_hor=31; %Convert to cm (horizontal)
-screen_vert=22; %Convert to cm (vertial)
+% Get the screen resolution in pixels per cm
+[screen_hor, screen_vert] = Screen('DisplaySize', window); % width and height in mm
+screen_hor = screen_hor / 10; % convert to cm
+screen_vert = screen_vert / 10; % convert to cm
 
 % Calculate pixels per centimeter
 [screenXpixels, screenYpixels] = Screen('WindowSize', window);
@@ -127,8 +126,8 @@ pixPerCmX = screenXpixels / screen_hor;
 pixPerCmY = screenYpixels / screen_vert;
 
 % Calculate the size in cm for the given visual angles
-sizeCmX = 2 * viewing_dist * tan(deg2rad(x_degree) / 2);
-sizeCmY = 2 * viewing_dist * tan(deg2rad(y_degree) / 2);
+sizeCmX = 2 * dat.viewing_dist_cm * tan(deg2rad(x_degree) / 2);
+sizeCmY = 2 * dat.viewing_dist_cm * tan(deg2rad(y_degree) / 2);
 
 % Convert the size from cm to pixels
 sizePixX = round(sizeCmX * pixPerCmX);
@@ -139,6 +138,92 @@ image_rect = CenterRectOnPointd([0 0 sizePixX sizePixY], xCenter, yCenter);
 
 % get smaller rectangle for targets (80% of original)
 small_image_rect = CenterRectOnPointd([0 0 sizePixX*0.8 sizePixY*0.8], xCenter, yCenter);
+
+%% Load all images as textures
+for i = 1:length(bathroomImages)
+    bathroomTextures(i) = Screen('MakeTexture', window, imread(fullfile(bathroomImages(i).folder, bathroomImages(i).name)));
+
+    % add image information
+    [~,file_name,ext] = fileparts(bathroomImages(i).name);
+    stim_info(1,i).fInfo = bathroomImages(i);
+    stim_info(1,i).fInfo.fname = file_name;
+    stim_info(1,i).fInfo.ext = ext;
+    stim_info(i).iInfo = imfinfo(fullfile(bathroomImages(i).folder, bathroomImages(i).name));
+    stim_info(i).scrRect = image_rect;
+end
+
+for i = 1:length(kitchenImages)
+    kitchenTextures(i) = Screen('MakeTexture', window, imread(fullfile(kitchenImages(i).folder, kitchenImages(i).name)));
+
+    % add image information
+    [~,file_name,ext] = fileparts(kitchenImages(i).name);
+    stim_info(1,i + length(bathroomImages)).fInfo = kitchenImages(i);
+    stim_info(1,i + length(bathroomImages)).fInfo.fname = file_name;
+    stim_info(1,i + length(bathroomImages)).fInfo.ext = ext;
+    stim_info(i + length(bathroomImages)).iInfo = imfinfo(fullfile(bathroomImages(i).folder, bathroomImages(i).name));
+    stim_info(i + length(bathroomImages)).scrRect = image_rect;
+end
+
+%% Get setup struct and configure settings for eye-tracking
+eyeTrackingMode
+settings = Titta.getDefaults('Tobii Pro Fusion');
+settings.debugMode = true; % Enable debug output
+calViz = AnimatedCalibrationDisplay();
+settings.cal.drawFunction = @calViz.doDraw;
+
+% scale down the span of the calibration point
+% (1.5 times as big as the presented simtuli)
+scaling_factor = (sizePixX/screenXpixels) * 1.5;
+centerPoint = 0.5;
+top = 0.5 - 0.5 * scaling_factor;
+bottom = 1 * scaling_factor + 0.5 - 0.5 * scaling_factor;
+
+% get 9 calibration points (X-shaped)
+calibrationPoints = [
+    top, top;  % Top-left
+    mean([top, centerPoint]), mean([top, centerPoint]);  % Intermediate top-left
+    bottom, top;  % Top-right
+    mean([bottom, centerPoint]), mean([top, centerPoint]);  % Intermediate top-right
+    centerPoint, centerPoint;  % Center
+    bottom, centerPoint;  % Middle-right
+    mean([top, centerPoint]), mean([bottom, centerPoint]);  % Intermediate left-right
+    top, bottom;  % Bottom-left
+    mean([bottom, centerPoint]), mean([bottom, centerPoint]);  % Intermediate bottom-right
+    bottom, bottom];  % Bottom-right
+
+% get 5 validation points (diamant + center)
+validationPoints = [
+    centerPoint, centerPoint;  % Center
+    mean([top, centerPoint]), centerPoint;  % Middle-left
+    centerPoint, mean([top, centerPoint]);  % Middle-top
+    mean([bottom, centerPoint]), centerPoint;  % Middle-right
+    centerPoint, mean([bottom, centerPoint])];  % Middle-bottom
+
+settings.cal.pointPos = calibrationPoints;
+settings.val.pointPos = validationPoints;
+
+
+%% Initialize Titta
+EThndl = Titta(settings);
+if ~eyeTrackingMode
+    EThndl = EThndl.setDummyMode();
+end
+EThndl.init();
+
+% add eye-tracker information to metadata
+dat.recordingDevice = EThndl.deviceName;
+dat.serialNumber = EThndl.serialNumber;
+dat.samplingFrequency = EThndl.frequency;
+
+%% Save participant meta data in a JSON file
+datfilename = fullfile(outputPath, ['sub-', dat.subjectID, '_task-eye-tracking-eeg_participant.json']);
+jsonText = jsonencode(dat);
+fid = fopen(datfilename, 'w');
+if fid == -1
+    error('Cannot create JSON file');
+end
+fwrite(fid, jsonText, 'char');
+fclose(fid);
 
 %% Initialize keyboard
 KbName('UnifyKeyNames');
@@ -151,9 +236,10 @@ absentKey = 39;
 %% Initialize overall accuracy
 overallAccuracy = [];
 
-%% start for-loop
+%% start experiment %%
 try
-    % open serail port for EEG recording
+
+    %% open serial port for EEG recording
     if eegMode
         SerialPortObj=serialport('COM4', 'TimeOut',1);%COM4 is the virtual serial output in the device manager
         SerialPortObj.BytesAvailableFcnMode='byte';
@@ -162,8 +248,19 @@ try
         fwrite(SerialPortObj, 0, 'sync');
     end
 
-    % Images
-    % startTime = GetSecs;
+    %% Initialize eye tracker calibration
+    if eyeTrackingMode
+        ListenChar(-1);
+        tobii.calVal{1} = EThndl.calibrate(window);
+        ListenChar(0);
+    end
+
+    %% Start recording eye-tracking data
+    EThndl.buffer.start('gaze');
+    WaitSecs(0.8);
+    EThndl.sendMessage('start recording');
+
+    %% start block-loop
     for i = 1:numBlocks
         if mod(i,2) == 0
             currentCategory = 'kitchen';
@@ -230,6 +327,7 @@ try
         % Display fixation cross before the trial
         DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
         Screen('Flip', window);  % Show fixation cross
+        EThndl.sendMessage('FIX ON', GetSecs);
 
         % Wait for initial start pad
         WaitSecs(startPad);
@@ -258,6 +356,9 @@ try
                 fwrite(SerialPortObj, 0, 'sync');
             end
 
+            % send message in eye-tracking file
+            EThndl.sendMessage(sprintf('STIM ON: %d', blkImgs.EEGtrigger(iImg)), trialOnsets(iImg));
+
             % trial timing
             while elapsedTime < trialDuration - ifi * framAnticipation
 
@@ -273,6 +374,8 @@ try
                     % Inter-trial interval (ITI)
                     DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Show fixation cross during ITI
                     itiOnsets(iImg) = Screen('Flip', window);  % Show fixation cross
+                    EThndl.sendMessage(sprintf('STIM OFF: %d', blkImgs.EEGtrigger(iImg)), itiOnsets(iImg));
+                    EThndl.sendMessage('FIX ON', itiOnsets(iImg));
                     itiFlag = true;
                 end
 
@@ -362,12 +465,15 @@ try
                 't%.6f\t%.6f\t%.6f\' ...
                 't%d\t%d\' ...
                 't%s\t%.6f\t%d\n'], ...
-                subjectID, i, iImg,...
+                dat.subjectID, i, iImg,...
                 blkImgs.texture(iImg), char(blkImgs.category(iImg)), char(blkImgs.imgName(iImg)), ...
                 trialOnsets(iImg), itiOnsets(iImg), trialEnd(iImg),...
                 blkImgs.iti(iImg), blkImgs.EEGtrigger(iImg),...
                 responseKeys{iImg}, responseTimes(iImg), trialAccuracy(iImg));
         end
+
+        % send break message
+        EThndl.sendMessage('START BREAK', GetSecs);
 
         % show feedback message
         feedbackMsg = sprintf('End of block %d.\n You answered %d %% of the questions correctly.', i, round(mean(accuracy, 'omitnan')*100));
@@ -381,10 +487,32 @@ try
         Screen('Flip', window);
         KbWait;
 
+        % send break end message
+        EThndl.sendMessage('END BREAK', GetSecs);
+
         % add accuracy
         overallAccuracy = [overallAccuracy accuracy];
 
-    end % end for-loop
+        %% Initialize eye tracker re-calibration after half the experiment
+        if i == 10
+
+            EThndl.sendMessage('RECALIBRATE', GetSecs);
+
+            ListenChar(-1);
+            tobii.calVal{1} = EThndl.calibrate(window);
+            ListenChar(0);
+
+            % Draw the fixation cross
+            DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);
+            Screen('Flip', window);
+
+            % start recording again
+            EThndl.buffer.start('gaze');
+            WaitSecs(0.8);
+            EThndl.sendMessage('start recording');
+        end
+
+    end % end block-loop
 
     % show feedback message
     feedbackMsg = ['The end', newline,...
@@ -405,6 +533,9 @@ try
     Screen('CloseAll');
     ShowCursor;
 
+    % send end message
+    EThndl.sendMessage('END OF EXPERIMENT', GetSecs);
+
     % Show experiment duration
     totalLength = GetSecs - startTime;
     disp(['The run duration was: ', char(minutes(totalLength/60))]);
@@ -415,6 +546,21 @@ try
         delete(SerialPortObj);
         clear SerialPortObj;
     end
+
+    %% Stop recording and save eye-tracking data
+    EThndl.buffer.stop('gaze');
+    WaitSecs(0.5)
+    EThndl.sendMessage('STOP RECORDING', GetSecs);
+
+    % save eye-tracking data
+    ET_dat = EThndl.collectSessionData();
+    ET_dat.expt.winRect = [0, 0, screenXpixels, screenYpixels]; % anaylsis scripts may need that information
+    ET_dat.expt.resolution = [screenXpixels, screenYpixels];
+    ET_dat.expt.stim = stim_info;
+    EThndl.saveData(ET_dat, fullfile(outputPath, ['sub-', dat.subjectID, '_task-eye-tracking-eeg_physio']), true);
+
+    % shut down
+    EThndl.deInit();
 
 catch ME
 
@@ -429,4 +575,17 @@ catch ME
         delete(SerialPortObj);
         clear SerialPortObj;
     end
+
+    % Stop and save recordingimgaussfilt
+    EThndl.sendMessage('ERROR - PROGRAM ABORTED', GetSecs);
+    EThndl.buffer.stop('gaze');
+    WaitSecs(0.5)
+    EThndl.sendMessage('STOP RECORDING', GetSecs);
+    ET_dat = EThndl.collectSessionData();
+    ET_dat.expt.winRect = [0, 0, screenXpixels, screenYpixels]; % anaylsis scripts may need that information
+    ET_dat.expt.resolution = [screenXpixels, screenYpixels];
+    ET_dat.expt.stim = stim_info;
+    EThndl.saveData(ET_dat, fullfile(outputPath, ['sub-', dat.subjectID, '_task-eye-tracking-eeg_physio']), true);
+    EThndl.deInit();
+
 end
