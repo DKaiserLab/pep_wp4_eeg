@@ -9,7 +9,7 @@ date = datetime('today');
 
 %% General Experiment Configuration
 testrun = false;
-
+eegMode = false;
 debugTimingFactor = 1; % Must be 1 for accurat timing (< 1 will give faster timing)
 imageDuration = 0.25 * debugTimingFactor;  % Image presentation time in seconds
 startPad = 2 * debugTimingFactor;  % Time before the first trial in seconds
@@ -152,7 +152,17 @@ overallAccuracy = [];
 
 %% start for-loop
 try
+    % open serail port for EEG recording
+    if eegMode
+        SerialPortObj=serialport('COM4', 'TimeOut',1);%COM4 is the virtual serial output in the device manager
+        SerialPortObj.BytesAvailableFcnMode='byte';
+        SerialPortObj.BytesAvailableFcnCount=1;
+        fopen(SerialPortObj);
+        fwrite(SerialPortObj, 0, 'sync');
+    end
+
     % Images
+    % startTime = GetSecs;
     for i = 1:numBlocks
         if mod(i,2) == 0
             currentCategory = 'kitchen';
@@ -175,12 +185,10 @@ try
         blkImgs.texture = runTextures';
         blkImgs.category = repmat({currentCategory}, 1, length(runTextures))';
         blkImgs.imgName = {blockImages.name}';
-        %blkImgs.EEGtrigger = [num2str(blkImgs.texture), num2str(repmat(i,1,100))];
 
         % Shuffle rows
         blkImgs1 = blkImgs(randperm(height(blkImgs)),:);
         blkImgs2 = blkImgs(randperm(height(blkImgs)),:);
-
         blkImgs = [blkImgs1; blkImgs2];
 
         % get iti distribution
@@ -189,6 +197,9 @@ try
         itiDist = round(itiDist/ifi);
         itiDist = itiDist * ifi;
         blkImgs.iti = itiDist';
+
+        % add triggercode (image ID = texture pointer - 10)
+        blkImgs.EEGtrigger = blkImgs.texture - 10;
 
         %         % help file loggen
         %         for iImg = 1:height(blkImgs)
@@ -233,13 +244,18 @@ try
             responseKeys{iImg} = 'none';
             trialAccuracy(iImg) = NaN;
             elapsedTime = 0;
-            triggerTimeStamp = i;
-            triggerDate = blkImgs.texture(iImg);
 
             % Present image
             Screen('DrawTexture', window, blkImgs.texture(iImg), [], image_rect);
             DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
             trialOnsets(iImg) = Screen('Flip', window);  % Get trial onset time
+
+            % send EEG trigger
+            if eegMode
+                fwrite(SerialPortObj, blkImgs.EEGtrigger(iImg), 'sync');
+                pause(0.01);
+                fwrite(SerialPortObj, 0, 'sync');
+            end
 
             % trial timing
             while elapsedTime < trialDuration - ifi * 0.75
@@ -340,10 +356,10 @@ try
             WaitSecs(0.75 * debugTimingFactor); % hier stand 2
             %end
 
-            fprintf(fileID, '%s\t%d\t%d\t%d\t%s\t%s\t%.6f\t%.6f\t%.6f\t%s\t%s\t%.6f\t%.6f\n', ...
+            fprintf(fileID, '%s\t%d\t%d\t%d\t%s\t%s\t%.6f\t%.6f\t%.6f\t%d\t%s\t%.6f\t%.6f\n', ...
                 subjectID, i, iImg,...
                 blkImgs.texture(iImg), char(blkImgs.category(iImg)), char(blkImgs.imgName(iImg)), ...
-                trialOnsets(iImg), itiOnsets(iImg), trialEnd(iImg), char(triggerDate), ...
+                trialOnsets(iImg), itiOnsets(iImg), trialEnd(iImg), blkImgs.EEGtrigger(iImg), ...
                 responseKeys{iImg}, responseTimes(iImg), trialAccuracy(iImg));
         end
 
@@ -384,14 +400,27 @@ try
     ShowCursor;
 
     % Show experiment duration
-    totalLength = GetSecs - triggerTimeStamp;
+    totalLength = GetSecs - startTime;
     disp(['The run duration was: ', char(minutes(totalLength/60))]);
 
+    % close serial port for EEG
+    if eegMode
+        fclose(SerialPortObj);
+        delete(SerialPortObj);
+        clear SerialPortObj;
+    end
+
 catch ME
+
     % Handle errors
     fprintf('An error occurred: %s\n', ME.message);
     Screen('CloseAll');  % Ensure the screen is closed in case of an error
     fclose(fileID);  % Close log file if open
     %     fclose(helpfileID);  % Close log file if open
     ShowCursor;
+    if eegMode
+        fclose(SerialPortObj);
+        delete(SerialPortObj);
+        clear SerialPortObj;
+    end
 end
