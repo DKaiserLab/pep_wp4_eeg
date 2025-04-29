@@ -4,25 +4,24 @@
 clear; close all
 
 %% Collect subject ID
-cfg.subjectID = input('Enter subject number: ', 's');
-cfg.date = datetime('today');
+subjectID = input('Enter subject number: ', 's');
+date = datetime('today');
 
 %% General Experiment Configuration
 testrun = false;
 
-cfg.debugTimingFactor = 1; % Must be 1 for accurat timing (< 1 will give faster timing)
-cfg.imageDuration = 0.25 * cfg.debugTimingFactor;  % Image presentation time in seconds
-cfg.iti = 0.75 * cfg.debugTimingFactor;  % Inter-trial interval in seconds
-cfg.startPad = 2 * cfg.debugTimingFactor;  % Time before the first trial in seconds
-cfg.endPad = 2 * cfg.debugTimingFactor;  % Time after the last trial in seconds
-cfg.ImageFileFormat = 'tif';
+debugTimingFactor = 1; % Must be 1 for accurat timing (< 1 will give faster timing)
+imageDuration = 0.25 * debugTimingFactor;  % Image presentation time in seconds
+startPad = 2 * debugTimingFactor;  % Time before the first trial in seconds
+endPad = 2 * debugTimingFactor;  % Time after the last trial in seconds
+ImageFileFormat = 'tif';
 
 numBlocks = 20;
 categories = {'kitchen', 'bathroom'};
 
 %% Paths
 stimPath = fullfile(pwd,'..', 'stimuli');
-outputPath = fullfile(pwd,'..', 'sourcedata', ['sub-', cfg.subjectID], 'beh');
+outputPath = fullfile(pwd,'..', 'sourcedata', ['sub-', subjectID], 'beh');
 functionPath = fullfile(pwd,'utilities');
 
 % add functions folder to path
@@ -33,8 +32,8 @@ if ~exist(outputPath, 'dir')
 end
 
 %% Image Loading
-kitchenImages = dir(fullfile(stimPath, 'kitchen', ['*.', cfg.ImageFileFormat]));
-bathroomImages = dir(fullfile(stimPath, 'bathroom', ['*.', cfg.ImageFileFormat]));
+kitchenImages = dir(fullfile(stimPath, 'kitchen', ['*.', ImageFileFormat]));
+bathroomImages = dir(fullfile(stimPath, 'bathroom', ['*.', ImageFileFormat]));
 
 if testrun
     kitchenImages = kitchenImages(1:20);
@@ -44,26 +43,26 @@ end
 numKitchenTrials = length(kitchenImages)*2; % ?
 numBathroomTrials = length(bathroomImages)*2;
 
-%% Help File Setup
-helpPath = fullfile(pwd,'..','helpdata');
-runHelpFile = fullfile(helpPath, 'permutations.tsv');
-% Make sure helpPath exists
-if ~exist(helpPath, 'dir')
-    mkdir(helpPath);
-end
-
+% %% Help File Setup
+% helpPath = fullfile(pwd,'..','helpdata');
+% runHelpFile = fullfile(helpPath, 'permutations.tsv');
+% % Make sure helpPath exists
+% if ~exist(helpPath, 'dir')
+%     mkdir(helpPath);
+% end
+%
 % Check if file name exists already to avoid overwriting
 % if exist(runHelpFile, 'file')
 %     error('File name exists already')
 % end
-helpfileID = fopen(runHelpFile, 'w');
-
-% Write header for the log file
-fprintf(helpfileID, 'block\timgnumber\tcategory\timagename\n');
+% helpfileID = fopen(runHelpFile, 'w');
+%
+% % Write header for the log file
+% fprintf(helpfileID, 'block\timgnumber\tcategory\timagename\n');
 
 %% Output File Setup
 % BIDS-compliant log file
-runOutputFile = fullfile(outputPath, sprintf('sub-%s_task-main_events.tsv', cfg.subjectID));
+runOutputFile = fullfile(outputPath, sprintf('sub-%s_task-main_events.tsv', subjectID));
 
 % Check if file name exists already to avoid overwriting
 if exist(runOutputFile, 'file')
@@ -171,18 +170,12 @@ try
         % Ensure reproducible order across participants
         rng(i);  % block number as seed
 
-        % get iti distribution
-        itiDist = linspace(0.65, 0.75, 100);
-        itiDist = round(itiDist/ifi);
-        itiDist = itiDist * ifi;
-
         % Initialize table
         blkImgs = table;
         blkImgs.texture = runTextures';
         blkImgs.category = repmat({currentCategory}, 1, length(runTextures))';
         blkImgs.imgName = {blockImages.name}';
         %blkImgs.EEGtrigger = [num2str(blkImgs.texture), num2str(repmat(i,1,100))];
-        blkImgs.iti = itiDist';
 
         % Shuffle rows
         blkImgs1 = blkImgs(randperm(height(blkImgs)),:);
@@ -190,11 +183,18 @@ try
 
         blkImgs = [blkImgs1; blkImgs2];
 
-        % help file loggen
-        for iImg = 1:height(blkImgs)
-            fprintf(helpfileID, '%d\t%d\t%s\t%s\n', ...
-                i, iImg, char(blkImgs.category(iImg)), char(blkImgs.imgName(iImg)));
-        end
+        % get iti distribution
+        itiDist = linspace(0.65, 0.85, height(blkImgs));
+        itiDist = itiDist(randperm(length(itiDist)));
+        itiDist = round(itiDist/ifi);
+        itiDist = itiDist * ifi;
+        blkImgs.iti = itiDist';
+
+        %         % help file loggen
+        %         for iImg = 1:height(blkImgs)
+        %             fprintf(helpfileID, '%d\t%d\t%s\t%s\n', ...
+        %                 i, iImg, char(blkImgs.category(iImg)), char(blkImgs.imgName(iImg)));
+        %         end
 
         % get targets
         load(fullfile(functionPath, 'targets.mat'), 'targetStruct')
@@ -207,12 +207,7 @@ try
         % init accuracy vector
         accuracy = nan(1, numel(targetStruct(targetNum).imgName));
 
-
         % Experiment Start
-
-        %         KbWait; % Wait for any key press in dummy mode
-
-
         trialOnsets = nan(1, numTrials);  % Store trial onset times
         itiOnsets = nan(1, numTrials);  % Store ITI onset times
         trialEnd = nan(1, numTrials);  % Store trial end
@@ -225,14 +220,13 @@ try
         Screen('Flip', window);  % Show fixation cross
 
         % Wait for initial start pad
-        WaitSecs(cfg.startPad);
+        WaitSecs(startPad);
 
         % Loop through all trials in the block
         for iImg = 1:height(blkImgs)
 
             % Initialize trial
-            %cfg.iti = 0.75 * cfg.... + rand
-            trialDuration = cfg.imageDuration + blkImgs.iti(i);
+            trialDuration = imageDuration + blkImgs.iti(i);
             responseFlag = false;
             itiFlag = false;
             responseTimes(iImg) = NaN;
@@ -258,7 +252,7 @@ try
                 end
 
                 % Show fixation cross after 250 ms
-                if ~itiFlag && elapsedTime > cfg.imageDuration - ifi * 0.5
+                if ~itiFlag && elapsedTime > imageDuration - ifi * 0.5
                     % Inter-trial interval (ITI)
                     DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Show fixation cross during ITI
                     itiOnsets(iImg) = Screen('Flip', window);  % Show fixation cross
@@ -289,8 +283,8 @@ try
                 end
 
                 % show target message
-                targetMsg = 'Was the following image the same as before?';
-                DrawFormattedText(window, targetMsg, 'center', small_image_rect(2) - 30 , [0 0 0]);
+                targetMsg = 'Was this the same as the previous image?';
+                DrawFormattedText(window, targetMsg, 'center', small_image_rect(2) - 50 , [0 0 0]);
 
                 % show target
                 targetImg = targetStruct(targetNum).showedImgName{targetIdx};
@@ -343,21 +337,21 @@ try
             % Display fixation cross before the next trial
             DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
             Screen('Flip', window);  % Show fixation cross
-            WaitSecs(0.75 * cfg.debugTimingFactor); % hier stand 2
+            WaitSecs(0.75 * debugTimingFactor); % hier stand 2
             %end
 
             fprintf(fileID, '%s\t%d\t%d\t%d\t%s\t%s\t%.6f\t%.6f\t%.6f\t%s\t%s\t%.6f\t%.6f\n', ...
-                cfg.subjectID, i, iImg,...
+                subjectID, i, iImg,...
                 blkImgs.texture(iImg), char(blkImgs.category(iImg)), char(blkImgs.imgName(iImg)), ...
                 trialOnsets(iImg), itiOnsets(iImg), trialEnd(iImg), char(triggerDate), ...
                 responseKeys{iImg}, responseTimes(iImg), trialAccuracy(iImg));
         end
 
         % show feedback message
-        feedbackMsg = sprintf('End of block %d.\n You answered %d % of the questions correctly.', i, round(mean(accuracy, 'omitnan')*100));
+        feedbackMsg = sprintf('End of block %d.\n You answered %d %% of the questions correctly.', i, round(mean(accuracy, 'omitnan')*100));
         DrawFormattedText(window, feedbackMsg, 'center', 'center', [0 0 0]);
         Screen('Flip', window);
-        WaitSecs(2)
+        WaitSecs(endPad)
 
         % Pause after block
         pauseText = 'You can take a short break.\n Press any key to continue.';
@@ -379,11 +373,11 @@ try
     Screen('Flip', window);
 
     % Wait for end pad
-    WaitSecs(1 * cfg.debugTimingFactor);
+    WaitSecs(endPad);
 
     % Close log file
     fclose(fileID);
-    fclose(helpfileID);
+    %     fclose(helpfileID);
 
     % Close Psychtoolbox Screen
     Screen('CloseAll');
@@ -398,6 +392,6 @@ catch ME
     fprintf('An error occurred: %s\n', ME.message);
     Screen('CloseAll');  % Ensure the screen is closed in case of an error
     fclose(fileID);  % Close log file if open
-    fclose(helpfileID);  % Close log file if open
+    %     fclose(helpfileID);  % Close log file if open
     ShowCursor;
 end
