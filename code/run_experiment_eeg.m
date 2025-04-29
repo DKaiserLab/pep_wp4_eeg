@@ -15,6 +15,7 @@ imageDuration = 0.25 * debugTimingFactor;  % Image presentation time in seconds
 startPad = 2 * debugTimingFactor;  % Time before the first trial in seconds
 endPad = 2 * debugTimingFactor;  % Time after the last trial in seconds
 ImageFileFormat = 'tif';
+framAnticipation = 0.25;
 
 numBlocks = 20;
 categories = {'kitchen', 'bathroom'};
@@ -71,7 +72,7 @@ end
 fileID = fopen(runOutputFile, 'w');
 
 % Write header for the log file
-fprintf(fileID, 'subject\tblock\ttrial\ttexture\tcategory\timage\ttrialOnset\titiOnset\ttrialEnd\tEEGtrigger\tresponseKey\tresponseTime\taccuracy\n');
+fprintf(fileID, 'subject\tblock\ttrial\ttexture\tcategory\timage\ttrialOnset\titiOnset\ttrialEnd\titi\tEEGtrigger\tresponseKey\tresponseTime\taccuracy\n');
 
 %% Initialize Psychtoolbox
 Screen('Preference', 'SkipSyncTests', 1);  % Skip sync tests for demo purposes (remove in actual experiment)
@@ -258,7 +259,7 @@ try
             end
 
             % trial timing
-            while elapsedTime < trialDuration - ifi * 0.75
+            while elapsedTime < trialDuration - ifi * framAnticipation
 
                 [keyIsDown, ~, keyCode] = KbCheck;
 
@@ -268,7 +269,7 @@ try
                 end
 
                 % Show fixation cross after 250 ms
-                if ~itiFlag && elapsedTime > imageDuration - ifi * 0.5
+                if ~itiFlag && elapsedTime > imageDuration - ifi * framAnticipation
                     % Inter-trial interval (ITI)
                     DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Show fixation cross during ITI
                     itiOnsets(iImg) = Screen('Flip', window);  % Show fixation cross
@@ -303,7 +304,7 @@ try
                 DrawFormattedText(window, targetMsg, 'center', small_image_rect(2) - 50 , [0 0 0]);
 
                 % show target
-                targetImg = targetStruct(targetNum).showedImgName{targetIdx};
+                targetImg = targetStruct(targetNum).targetImgName{targetIdx};
                 rowIdx = find(strcmp(blkImgs.imgName, targetImg));
                 targetImgTexture = blkImgs.texture(rowIdx(1));
 
@@ -356,10 +357,15 @@ try
             WaitSecs(0.75 * debugTimingFactor); % hier stand 2
             %end
 
-            fprintf(fileID, '%s\t%d\t%d\t%d\t%s\t%s\t%.6f\t%.6f\t%.6f\t%d\t%s\t%.6f\t%.6f\n', ...
+            fprintf(fileID, ['%s\t%d\t%d\' ...
+                't%d\t%s\t%s\' ...
+                't%.6f\t%.6f\t%.6f\' ...
+                't%d\t%d\' ...
+                't%s\t%.6f\t%d\n'], ...
                 subjectID, i, iImg,...
                 blkImgs.texture(iImg), char(blkImgs.category(iImg)), char(blkImgs.imgName(iImg)), ...
-                trialOnsets(iImg), itiOnsets(iImg), trialEnd(iImg), blkImgs.EEGtrigger(iImg), ...
+                trialOnsets(iImg), itiOnsets(iImg), trialEnd(iImg),...
+                blkImgs.iti(iImg), blkImgs.EEGtrigger(iImg),...
                 responseKeys{iImg}, responseTimes(iImg), trialAccuracy(iImg));
         end
 
