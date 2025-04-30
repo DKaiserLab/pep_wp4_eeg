@@ -19,7 +19,7 @@ dat.project = 'PEP_WP4_eeg';
 
 %% General Experiment Configuration
 eegMode = false;
-eyeTrackingMode = false;
+eyeTrackingMode = true;
 debugTimingFactor = 1; % Must be 1 for accurat timing (< 1 will give faster timing)
 imageDuration = 0.25 * debugTimingFactor;  % Image presentation time in seconds
 startPad = 2 * debugTimingFactor;  % Time before the first trial in seconds
@@ -139,7 +139,7 @@ sizePixY = round(sizeCmY * pixPerCmY);
 image_rect = CenterRectOnPointd([0 0 sizePixX sizePixY], xCenter, yCenter);
 
 % get smaller rectangle for targets (80% of original)
-small_image_rect = CenterRectOnPointd([0 0 sizePixX*0.8 sizePixY*0.8], xCenter, yCenter);
+small_image_rect = CenterRectOnPointd([0 0 sizePixX*0.5 sizePixY*0.5], xCenter, yCenter);
 
 %% Load all images as textures
 for i = 1:length(bathroomImages)
@@ -174,7 +174,7 @@ settings.cal.drawFunction = @calViz.doDraw;
 
 % scale down the span of the calibration point
 % (1.5 times as big as the presented simtuli)
-scaling_factor = (sizePixX/screenXpixels) * 1.5;
+scaling_factor = (sizePixX/screenXpixels) * 3;
 centerPoint = 0.5;
 top = 0.5 - 0.5 * scaling_factor;
 bottom = 1 * scaling_factor + 0.5 - 0.5 * scaling_factor;
@@ -430,9 +430,7 @@ try
                 targetImg = targetStruct(targetNum).targetImgName{targetIdx};
                 rowIdx = find(strcmp(blkImgs.imgName, targetImg));
                 targetImgTexture = blkImgs.texture(rowIdx(1));
-
                 Screen('DrawTexture', window, targetImgTexture, [], small_image_rect);
-                DrawFormattedText(window, '+', 'center', 'center', [0 0 0]);  % Black fixation cross
                 qTime = Screen('Flip', window);
 
                 % Wait for response
