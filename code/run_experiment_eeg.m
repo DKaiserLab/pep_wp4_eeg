@@ -5,6 +5,9 @@ clear; close all
 
 %% Collect subject ID
 dat.subjectID = input('Enter subject number: ', 's');
+practiceRun = input('Practice run: ');
+practiceRun = logical(practiceRun);
+if isempty(practiceRun); practiceRun = false; end
 
 % Additional metadata
 dat.date = datestr(now, 'yyyy-mm-dd');
@@ -15,7 +18,6 @@ dat.recordingLocation = 'math. dept. JLU Giessen';
 dat.project = 'PEP_WP4_eeg';
 
 %% General Experiment Configuration
-testrun = false;
 eegMode = false;
 eyeTrackingMode = false;
 debugTimingFactor = 1; % Must be 1 for accurat timing (< 1 will give faster timing)
@@ -24,9 +26,17 @@ startPad = 2 * debugTimingFactor;  % Time before the first trial in seconds
 endPad = 2 * debugTimingFactor;  % Time after the last trial in seconds
 ImageFileFormat = 'tif';
 framAnticipation = 0.25;
-
-numBlocks = 20;
 categories = {'kitchen', 'bathroom'};
+
+if practiceRun
+    eegMode = false;
+    eyeTrackingMode = false;
+    taskName = 'practice';
+    numBlocks = 1;
+else
+    taskName = 'main';
+    numBlocks = 20;
+end
 
 %% Paths
 stimPath = fullfile(pwd,'..', 'stimuli');
@@ -43,14 +53,6 @@ end
 %% Image Loading
 kitchenImages = dir(fullfile(stimPath, 'kitchen', ['*.', ImageFileFormat]));
 bathroomImages = dir(fullfile(stimPath, 'bathroom', ['*.', ImageFileFormat]));
-
-if testrun
-    kitchenImages = kitchenImages(1:20);
-    bathroomImages = bathroomImages(1:20);
-end
-
-numKitchenTrials = length(kitchenImages)*2; % ?
-numBathroomTrials = length(bathroomImages)*2;
 
 % %% Help File Setup
 % helpPath = fullfile(pwd,'..','helpdata');
@@ -71,7 +73,7 @@ numBathroomTrials = length(bathroomImages)*2;
 
 %% Output File Setup
 % BIDS-compliant log file
-runOutputFile = fullfile(outputPath, sprintf('sub-%s_task-eye-tracking-eeg_events.tsv', dat.subjectID));
+runOutputFile = fullfile(outputPath, sprintf('sub-%s_task-%s_events.tsv', dat.subjectID, taskName));
 
 % Check if file name exists already to avoid overwriting
 if exist(runOutputFile, 'file')
@@ -165,7 +167,6 @@ for i = 1:length(kitchenImages)
 end
 
 %% Get setup struct and configure settings for eye-tracking
-eyeTrackingMode
 settings = Titta.getDefaults('Tobii Pro Fusion');
 settings.debugMode = true; % Enable debug output
 calViz = AnimatedCalibrationDisplay();
@@ -216,7 +217,8 @@ dat.serialNumber = EThndl.serialNumber;
 dat.samplingFrequency = EThndl.frequency;
 
 %% Save participant meta data in a JSON file
-datfilename = fullfile(outputPath, ['sub-', dat.subjectID, '_task-eye-tracking-eeg_participant.json']);
+
+datfilename = fullfile(outputPath, ['sub-', dat.subjectID, '_task-', taskName, '_participant.json']);
 jsonText = jsonencode(dat);
 fid = fopen(datfilename, 'w');
 if fid == -1
@@ -261,6 +263,15 @@ try
     EThndl.sendMessage('start recording');
 
     %% start block-loop
+    % wait for participant
+    pauseText = 'Ready? \n Press a button to start the experiment!';
+    DrawFormattedText(window, pauseText, 'center', 'center', [0 0 0]);
+    Screen('Flip', window);
+    KbWait;
+
+    % start timer
+    startTime = GetSecs;
+
     for i = 1:numBlocks
         if mod(i,2) == 0
             currentCategory = 'kitchen';
@@ -276,7 +287,11 @@ try
 
         % randomize trial order
         % Ensure reproducible order across participants
-        rng(i);  % block number as seed
+        if ~practiceRun
+            rng(i);  % block number as seed
+        else
+            rng(21);  % block number as seed
+        end
 
         % Initialize table
         blkImgs = table;
@@ -287,10 +302,15 @@ try
         % Shuffle rows
         blkImgs1 = blkImgs(randperm(height(blkImgs)),:);
         blkImgs2 = blkImgs(randperm(height(blkImgs)),:);
-        blkImgs = [blkImgs1; blkImgs2];
+
+        if practiceRun
+            blkImgs = blkImgs1(1:10,:);
+        else
+            blkImgs = [blkImgs1; blkImgs2];
+        end
 
         % get iti distribution
-        itiDist = linspace(0.65, 0.85, height(blkImgs));
+        itiDist = linspace(0.65, 0.85, height(blkImgs))*debugTimingFactor;
         itiDist = itiDist(randperm(length(itiDist)));
         itiDist = round(itiDist/ifi);
         itiDist = itiDist * ifi;
@@ -307,7 +327,7 @@ try
 
         % get targets
         load(fullfile(functionPath, 'targets.mat'), 'targetStruct')
-        if testrun
+        if practiceRun
             targetNum = numel(targetStruct);
         else
             targetNum = i; %str2double(str2double(i));
@@ -496,6 +516,12 @@ try
         %% Initialize eye tracker re-calibration after half the experiment
         if i == 10
 
+            % participant should ask for experimentern
+            pauseText = 'Eye-tracker needs to be recalibrated. \n Please call the experimenter.';
+            DrawFormattedText(window, pauseText, 'center', 'center', [0 0 0]);
+            Screen('Flip', window);
+            KbWait;
+
             EThndl.sendMessage('RECALIBRATE', GetSecs);
 
             ListenChar(-1);
@@ -517,7 +543,7 @@ try
     % show feedback message
     feedbackMsg = ['The end', newline,...
         'You answered ', num2str(round(mean(overallAccuracy, 'omitnan')*100)), ...
-        '% of the questions correctly', newline, ...
+        '% of all questions correctly', newline, ...
         'Thank you!'];
     DrawFormattedText(window, feedbackMsg, 'center', 'center', [0 0 0]);
     Screen('Flip', window);
@@ -557,7 +583,7 @@ try
     ET_dat.expt.winRect = [0, 0, screenXpixels, screenYpixels]; % anaylsis scripts may need that information
     ET_dat.expt.resolution = [screenXpixels, screenYpixels];
     ET_dat.expt.stim = stim_info;
-    EThndl.saveData(ET_dat, fullfile(outputPath, ['sub-', dat.subjectID, '_task-eye-tracking-eeg_physio']), true);
+    EThndl.saveData(ET_dat, fullfile(outputPath, ['sub-', dat.subjectID, '_task-', taskName, '_physio']), true);
 
     % shut down
     EThndl.deInit();
@@ -585,7 +611,7 @@ catch ME
     ET_dat.expt.winRect = [0, 0, screenXpixels, screenYpixels]; % anaylsis scripts may need that information
     ET_dat.expt.resolution = [screenXpixels, screenYpixels];
     ET_dat.expt.stim = stim_info;
-    EThndl.saveData(ET_dat, fullfile(outputPath, ['sub-', dat.subjectID, '_task-eye-tracking-eeg_physio']), true);
+    EThndl.saveData(ET_dat, fullfile(outputPath, ['sub-', dat.subjectID, '_task-', taskName, '_physio']), true);
     EThndl.deInit();
 
 end
