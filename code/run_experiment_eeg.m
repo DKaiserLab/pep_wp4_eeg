@@ -18,7 +18,7 @@ dat.recordingLocation = 'math. dept. JLU Giessen';
 dat.project = 'PEP_WP4_eeg';
 
 %% General Experiment Configuration
-eegMode = false;
+eegMode = true;
 eyeTrackingMode = true;
 debugTimingFactor = 1; % Must be 1 for accurat timing (< 1 will give faster timing)
 imageDuration = 0.25 * debugTimingFactor;  % Image presentation time in seconds
@@ -243,7 +243,7 @@ try
 
     %% open serial port for EEG recording
     if eegMode
-        SerialPortObj=serialport('COM4', 'TimeOut',1);%COM4 is the virtual serial output in the device manager
+        SerialPortObj=serial('COM4', 'TimeOut',1); %COM4 is the virtual serial output in the device manager
         SerialPortObj.BytesAvailableFcnMode='byte';
         SerialPortObj.BytesAvailableFcnCount=1;
         fopen(SerialPortObj);
