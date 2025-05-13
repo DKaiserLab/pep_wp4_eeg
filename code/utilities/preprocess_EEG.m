@@ -10,11 +10,7 @@ ss=109; %[106 109 111 113 110]
 prestim=0.5;
 baseline=0.5;
 poststim=0.5;
-<<<<<<< HEAD
-=======
-%output_dir='Users/theaschmitt/Documents/Data Science/6. Semester/Thesis/Test/';
-%output_dir = fullfile('Users', 'theaschmitt', 'Documents', 'Data Science', '6. Semester', 'Thesis', 'Test');
->>>>>>> cf25af5959fdfd67a5ba0d34563c2610b6511b1b
+
 output_dir = fullfile(pwd, '..', '..', 'derivatives');
 
 % enable fieldtrip functions
@@ -26,14 +22,9 @@ ft_defaults;
 for s=ss% for each subject    
            
     %% Specify input file
-    
-<<<<<<< HEAD
+
     fileName = fullfile(pwd, '..', '..', 'sourcedata', ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '.eeg']);
-    
-=======
-    %fileName=['Users/theaschmitt/Documents/Data Science/6. Semester/Thesis/Daten/','PEP_WP4_EEG', num2str(s,'%02.f'),'.eeg'];
-    fileName = fullfile(pwd, '..', '..', 'sourcedata', ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '.eeg']);
->>>>>>> cf25af5959fdfd67a5ba0d34563c2610b6511b1b
+
     %% Define Events
 
     cfg=[];
@@ -124,11 +115,7 @@ for s=ss% for each subject
 
     % transform to "timelocked" data and save the output
     cfg=[];
-<<<<<<< HEAD
     cfg.outputfile = fullfile(output_path, ['PEP_WP4_EEG', num2str(s), '_timelock']);
-=======
-    cfg.outputfile=fullfile(output_dir, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock']);
->>>>>>> cf25af5959fdfd67a5ba0d34563c2610b6511b1b
     cfg.keeptrials='yes';
     save(fullfile(output_dir, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock']),'data');
     data=ft_timelockanalysis(cfg,data);
