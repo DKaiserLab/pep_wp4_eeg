@@ -6,7 +6,7 @@ clc
 
 %% Define Parameters
 
-ss=109; %[106 109 111 113 110]
+ss=122;%[106 109 111 113 110];
 prestim=0.5;
 baseline=0.5;
 poststim=0.5;
@@ -34,13 +34,7 @@ for s=ss% for each subject
     cfg.trialdef.prestim=prestim;
     cfg.trialdef.poststim=poststim;
     cfg=ft_definetrial(cfg);
-%     
-%     two_dig_logical=cfg.trl(:,4)<100;
-%     two_dig_triggers=cfg.trl(two_dig_logical,4);
-%     cfg.trl(two_dig_logical,4)=cellfun(@(c)c(1),""+two_dig_triggers)-'0';
-%     three_dig_triggers=cfg.trl(~two_dig_logical,4);
-%     cfg.trl(~two_dig_logical,4)=cellfun(@(c)c(2),""+three_dig_triggers)-'0';
-%     
+  
     %% Load Data and Preprocess Data
     
     cfg.hpfilter='no';
@@ -54,6 +48,14 @@ for s=ss% for each subject
 
     %% Resample data 
     
+    if s==110
+        cfg=[];
+        cfg.reref='yes';
+        cfg.refchannel={'Cz'};
+        cfg.channel='EEG';
+        data=ft_preprocessing(cfg,data);
+    end
+
     cfg=[];
     cfg.resamplefs=200;
     data=ft_resampledata(cfg,data);
