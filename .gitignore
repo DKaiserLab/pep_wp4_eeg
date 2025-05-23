@@ -1,4 +1,4 @@
 *.asv
 *.eeg
 .DS_Store
-_timelock.mat
+*_timelock.mat
