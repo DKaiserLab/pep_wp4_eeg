@@ -38,9 +38,6 @@ for iSub = 1:length(cfg.subNums)
     filepath = fullfile(pwd, '..', '..', 'derivatives', ['sub-', num2str(cfg.subNums(iSub))], 'eeg', ['PEP_WP4_EEG', num2str(cfg.subNums(iSub)), '_timelock', '.mat']);
     load(filepath);
 
-    %get time info
-    res.time=timelock.time;
-
     %convert to cosmo
     ds=cosmo_meeg_dataset(timelock);
     clear timelock
@@ -50,6 +47,10 @@ for iSub = 1:length(cfg.subNums)
     decoding_end = 0.3;
     time_points = find(ds.a.fdim.values{2, 1} >= decoding_start &...
         ds.a.fdim.values{2, 1} <= decoding_end);
+
+    %get time info
+    res.all_time=timelock.time;
+    res.included_time=time_points;
 
     %% Pairwise decoding
     % Initialize RDM
