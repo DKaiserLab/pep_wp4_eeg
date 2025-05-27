@@ -1,0 +1,11 @@
+subject	block	trial	texture	category	image	trialOnset	itiOnset	trialEnd	iti	EEGtrigger	responseKey	responseTime	accuracy
+116	1	1	14	bathroom	sun_abapwbhyhkfixyex.tif	331363.103928	331363.362513	331364.044388	6.923423e-01	4	none	NaN	NaN
+116	1	2	11	bathroom	labelme_sfxiulhjbhlyiyt.tif	331364.813945	331365.072542	331365.754284	7.173668e-01	1	none	NaN	NaN
+116	1	3	16	bathroom	sun_acduarbnmmoglmiv.tif	331366.523978	331366.782574	331367.464271	7.840986e-01	6	37	331374.363895	1
+116	1	4	21	bathroom	sun_aggnnqpdorgxpvce.tif	331375.140872	331375.390967	331376.081339	8.258059e-01	11	none	NaN	NaN
+116	1	5	23	bathroom	sun_aghyqhbptboemmoq.tif	331376.842325	331377.092614	331377.782909	8.508303e-01	13	39	331378.923871	1
+116	1	6	38	bathroom	sun_anhioqovhscjqqwb.tif	331379.703707	331379.962298	331380.643994	7.423912e-01	28	none	NaN	NaN
+116	1	7	24	bathroom	sun_agrwbmhcpmfuwmsg.tif	331381.413738	331381.672327	331382.354190	8.091230e-01	14	none	NaN	NaN
+116	1	8	15	bathroom	sun_abjtwfukuwddzted.tif	331383.123769	331383.382353	331384.064172	6.506350e-01	5	none	NaN	NaN
+116	1	9	44	bathroom	sun_apkruvsevgegsdwp.tif	331384.833796	331385.092379	331385.774280	7.590741e-01	34	39	331386.859948	1
+116	1	10	48	bathroom	sun_aqrpegblszgcoujh.tif	331387.636566	331387.895159	331388.576894	6.756594e-01	38	none	NaN	NaN
