@@ -1,5 +1,5 @@
 %% Housekeeping
-clear 
+clear
 clc
 close all
 
@@ -10,7 +10,7 @@ load(filepath);
 %% plot
 
 % define parameters
-ss=[117 104 103 106 109 111 113 110 122 112];
+ss = [102 103 104 106 109 110 111 112 113 115 116 117 120 122];
 an=1;
 sn=size(res.dec_acc,1);
 analysis_title="individual decoding accuracies" ;
@@ -23,21 +23,21 @@ dec_acc_max=max(max(res.dec_acc));
 
 % plot individual decoding results
 for s=1:sn
-subplot(ceil((sn)/2),2,s)
-xline(0); 
+    subplot(ceil((sn)/2),2,s)
+    xline(0);
 
-hold on
-h=line([min(res.time),max(res.time)],[chance_level,chance_level]);
-set(h,'color','k');
-set(h,'linewidth',1);
-set(h,'linestyle','--');
-hold on
-subj_id=title(['subject ' num2str(ss(s))]);
-p=plot(res.time,squeeze(res.dec_acc(s,:)));
-set(p,'linewidth',1.25);
-set(p,'Color',analysis_color./255);
-yline(max(res.dec_acc(s,:)), 'k--', ['max ', num2str(max(res.dec_acc(s,:)))])
-ylim([dec_acc_min, dec_acc_max+0.02])
+    hold on
+    h=line([min(res.time),max(res.time)],[chance_level,chance_level]);
+    set(h,'color','k');
+    set(h,'linewidth',1);
+    set(h,'linestyle','--');
+    hold on
+    subj_id=title(['subject ' num2str(res.order(s))]);
+    p=plot(res.time,squeeze(res.dec_acc(s,:)));
+    set(p,'linewidth',1.25);
+    set(p,'Color',analysis_color./255);
+    yline(max(res.dec_acc(s,:)), 'k--', ['max ', num2str(max(res.dec_acc(s,:)))])
+    ylim([dec_acc_min, dec_acc_max+0.02])
 end
 subplot_title=sgtitle(char(analysis_title));
 set(subplot_title,'FontWeight','bold');
