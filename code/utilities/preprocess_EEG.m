@@ -6,7 +6,7 @@ clc
 
 %% Define Parameters
 
-ss=122;%[106 109 111 113 110];
+ss=[102 103 104 106 109 110 111 112 113 115 116 117 120 122];
 prestim=0.5;
 baseline=0.5;
 poststim=0.5;
@@ -24,6 +24,10 @@ for s=ss% for each subject
     %% Specify input file
 
     fileName = fullfile(pwd, '..', '..', 'sourcedata', ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '.eeg']);
+
+    if exist(fullfile('..', '..', 'derivatives', ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock.mat']))==2
+        continue
+    end 
 
     %% Define Events
 
@@ -81,19 +85,18 @@ for s=ss% for each subject
     data=ft_rejectvisual(cfg,data);
     
     %% ICA     
-    
     cfg = [];
-    cfg.method='fastica'; 
-    cfg.fastica.numOfIC=30;
+    cfg.method='runica'; 
+    cfg.numcomponent=30; % oder mehr?
     comp = ft_componentanalysis(cfg, data);
 
     % component topoplots
-    figure
+    figure;
     cfg=[];
-    cfg.component=1:30;   
+    cfg.component = 1:30;%'all';
     layout = 'easycap-M1.txt';
     cfg.layout=layout; 
-    cfg.comment='no';
+    cfg.comment='auto';%'no'
     ft_topoplotIC(cfg, comp);
 
     % component timecourse plots
