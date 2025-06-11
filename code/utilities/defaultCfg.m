@@ -18,7 +18,6 @@ if ~isfield(cfg, 'ISC_types'); cfg.ISC_types = {'pairRep'};end
 if ~isfield(cfg, 'dnn'); cfg.dnn = 'vgg16_imagenet';end
 if ~isfield(cfg, 'functionPath'); cfg.functionPath = fullfile(pwd,'utilities');end
 if ~isfield(cfg, 'analysis_names'); cfg.analysis_names = {'typical', 'control'};end
-if ~isfield(cfg, 'colormaps'); cfg.colormaps = load(fullfile(cfg.functionPath, 'white_zero_colormap.mat'));end
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
 if ~isfield(cfg, 'saving'); cfg.saving = true; end
 if ~isfield(cfg, 'dissimilarity'); cfg.dissimilarity = true; end
