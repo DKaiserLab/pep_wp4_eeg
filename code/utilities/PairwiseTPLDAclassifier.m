@@ -1,7 +1,4 @@
-% define parameters
-cfg.subNums=[102 103 104 106 109 110 111 112 113 115 116 117 120 122];
-cfg.makeBetweenComparison = false;
-cfg.nTrials=100;
+function [res, cfg] = PairwiseTPLDAclassifier(cfg)
 
 % evaluate input
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
@@ -12,8 +9,8 @@ makeBetweenComparison = cfg.makeBetweenComparison;
 classifier = @cosmo_classify_lda;
 
 % get existing pairwise decoding results
-fileName = fullfile(pwd, '..', '..', 'derivatives', 'group_level', 'RDM',...
-    'results_RDM_of_pairwise_decoding.mat');
+fileName = fullfile(cfg.outputPath, 'group_level', 'RDM',...
+    'results_RDM_of_pairwise_decoding_reref_w.mat');
 if exist(fileName, 'file')
     load(fileName)
 end
@@ -35,12 +32,11 @@ for iSub = 1:length(cfg.subNums)
     % progress report
     disp(['Starting pairwise decoding for subject ',  num2str(cfg.subNums(iSub))]);
 
-    filepath = fullfile(pwd, '..', '..', 'derivatives', ['sub-', num2str(cfg.subNums(iSub))], 'eeg', ['PEP_WP4_EEG', num2str(cfg.subNums(iSub)), '_timelock', '.mat']);
+    filepath = fullfile(cfg.outputPath, ['sub-', num2str(cfg.subNums(iSub))], 'eeg', ['PEP_WP4_EEG', num2str(cfg.subNums(iSub)), '_timelock_reref_w', '.mat']);
     load(filepath);
 
     %convert to cosmo
     ds=cosmo_meeg_dataset(timelock);
-    %clear timelock
 
     % time range for decoding
     decoding_start = 0;
@@ -130,4 +126,10 @@ save(fileName, 'res')
 
 if ~isempty(gcp('nocreate'))
     delete(gcp('nocreate'));
+end
+
+if cfg.plotting
+    PairwiseDecodingPlots(cfg, res);
+end
+
 end
