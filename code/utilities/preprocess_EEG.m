@@ -1,17 +1,10 @@
-%% Housekeeping
-
-close all
-clear all
-clc
+function preprocess_EEG(cfg)
 
 %% Define Parameters
-
-ss=[102 103 104 106 109 110 111 112 113 115 116 117 120 122];
 prestim=0.5;
 baseline=0.5;
 poststim=0.5;
 
-output_dir = fullfile(pwd, '..', '..', 'derivatives');
 
 % enable fieldtrip functions
 %restoredefaultpath;
@@ -19,113 +12,120 @@ output_dir = fullfile(pwd, '..', '..', 'derivatives');
 ft_defaults;
 
 %% Start for-loop
-for s=ss% for each subject    
-           
+for s=cfg.subNums% for each subject
+
     %% Specify input file
 
-    fileName = fullfile(pwd, '..', '..', 'sourcedata', ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '.eeg']);
+    fileName = fullfile(cfg.sourcedataPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '.eeg']);
 
-    if exist(fullfile('..', '..', 'derivatives', ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock.mat']))==2
+    if exist(fullfile(cfg.outputPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w.mat']), 'file')
         continue
-    end 
+    end
 
     %% Define Events
 
-    cfg=[];
-    cfg.dataset=fileName;
-    cfg.trialdef.eventtype='Stimulus';
-   
-    cfg.trialdef.prestim=prestim;
-    cfg.trialdef.poststim=poststim;
-    cfg=ft_definetrial(cfg);
-  
+    cfg_temp=[];
+    cfg_temp.dataset=fileName;
+    cfg_temp.trialdef.eventtype='Stimulus';
+
+    cfg_temp.trialdef.prestim=prestim;
+    cfg_temp.trialdef.poststim=poststim;
+    cfg_temp=ft_definetrial(cfg_temp);
+
     %% Load Data and Preprocess Data
-    
-    cfg.hpfilter='no';
-    cfg.lpfilter='no';
-    cfg.bsfilter='yes';
-    cfg.bsfreq=[48 52];
-    cfg.demean='yes';
-    cfg.baselinewindow=[-baseline,0];
-    cfg.channel={'all', '-photo'};
-    data=ft_preprocessing(cfg);
 
-    %% Resample data 
-    
-    if s==110
-        cfg=[];
-        cfg.reref='yes';
-        cfg.refchannel={'Cz'};
-        cfg.channel='EEG';
-        data=ft_preprocessing(cfg,data);
-    end
+    cfg_temp.hpfilter='no';
+    cfg_temp.lpfilter='no';
+    cfg_temp.bsfilter='yes';
+    cfg_temp.bsfreq=[48 52];
 
-    cfg=[];
-    cfg.resamplefs=200;
-    data=ft_resampledata(cfg,data);
+    % filter
+    %     cfg_temp.bpfilter = 'yes';
+    %     cfg_temp.bpfreq = [0.5 100];
+    %     cfg_temp.bpfiltord = 4;
+    %     cfg_temp.bpfiltype = 'but';
+
+    cfg_temp.demean='yes';
+    cfg_temp.baselinewindow=[-baseline,0];
+    cfg_temp.channel={'all', '-photo'};
+    data=ft_preprocessing(cfg_temp);
+
+    %% Reref
+    cfg_temp = [];
+    cfg_temp.reref       = 'yes';
+    cfg_temp.reference_method = 'avg';
+    cfg_temp.refchannel  = 'all';          % Use all channels to compute average
+    cfg_temp.channel     = 'EEG';
+    data = ft_preprocessing(cfg_temp, data);
     
+    %% Resample data
+    cfg_temp=[];
+    cfg_temp.resamplefs=200;
+    data=ft_resampledata(cfg_temp,data);
+
     %% Look at the data to identify problematic trials
-    
-    cfg=[];
-    cfg.viewmode='vertical';
-    cfg=ft_databrowser(cfg,data);
 
-    if isfield(cfg, 'trl')
-        cfg = rmfield(cfg, 'trl');
+    cfg_temp=[];
+    cfg_temp.viewmode='vertical';
+    cfg_temp=ft_databrowser(cfg_temp,data);
+
+    if isfield(cfg_temp, 'trl')
+        cfg_temp = rmfield(cfg_temp, 'trl');
     end
 
-    data=ft_rejectartifact(cfg,data);
+    data=ft_rejectartifact(cfg_temp,data);
 
     %% Remove bad trials / channels
-    
-    cfg=[];
-    cfg.showlabel='yes';
-    cfg.method='summary'; 
-    cfg.keepchannel='no';
-    data=ft_rejectvisual(cfg,data);
-    
-    %% ICA     
-    cfg = [];
-    cfg.method='runica'; 
-    cfg.numcomponent=30; % oder mehr?
-    comp = ft_componentanalysis(cfg, data);
+
+    cfg_temp=[];
+    cfg_temp.showlabel='yes';
+    cfg_temp.method='summary';
+    cfg_temp.keepchannel='no';
+    data=ft_rejectvisual(cfg_temp,data);
+
+    %% ICA
+    cfg_temp = [];
+    cfg_temp.method='runica';
+    cfg_temp.numcomponent=30; % oder mehr?
+    comp = ft_componentanalysis(cfg_temp, data);
 
     % component topoplots
     figure;
-    cfg=[];
-    cfg.component = 1:30;%'all';
+    cfg_temp=[];
+    cfg_temp.component = 1:30;%'all';
     layout = 'easycap-M1.txt';
-    cfg.layout=layout; 
-    cfg.comment='auto';%'no'
-    ft_topoplotIC(cfg, comp);
+    cfg_temp.layout=layout;
+    cfg_temp.comment='auto';%'no'
+    ft_topoplotIC(cfg_temp, comp);
 
     % component timecourse plots
     figure
-    cfg=[];
-    cfg.layout=layout; 
-    cfg.viewmode='component';
-    ft_databrowser(cfg,comp);
+    cfg_temp=[];
+    cfg_temp.layout=layout;
+    cfg_temp.viewmode='component';
+    ft_databrowser(cfg_temp,comp);
 
     % remove the bad components and backproject the data
-    cfg = [];
-    cfg.component = input('Which components do you want to remove? '); 
-    cfg.demean='no';
-    data=ft_rejectcomponent(cfg, comp, data);
-    
+    cfg_temp = [];
+    cfg_temp.component = input('Which components do you want to remove? ');
+    cfg_temp.demean='no';
+    data=ft_rejectcomponent(cfg_temp, comp, data);
+
     % define output_path, create folders
-    output_path = fullfile(output_dir, ['sub-', num2str(s)], 'eeg');
+    output_path = fullfile(cfg_temp.outputPath, ['sub-', num2str(s)], 'eeg');
     if ~exist(output_path, 'dir')
         mkdir(output_path);
     end
 
     % transform to "timelocked" data and save the output
-    cfg=[];
-    cfg.outputfile = fullfile(output_path, ['PEP_WP4_EEG', num2str(s), '_timelock']);
-    cfg.keeptrials='yes';
-    save(fullfile(output_dir, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock']),'data');
-    data=ft_timelockanalysis(cfg,data);
-    
+    cfg_temp=[];
+    cfg_temp.outputfile = fullfile(cfg.outputPath, ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w']);
+    cfg_temp.keeptrials='yes';
+    save(fullfile(cfg.outputPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w']),'data');
+    data=ft_timelockanalysis(cfg_temp,data);
+
     % if you want: display the data
     %ft_databrowser(cfg,data);
-    
+
 end% subjects
+end
