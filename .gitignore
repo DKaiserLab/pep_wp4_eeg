@@ -2,8 +2,4 @@
 *.eeg
 .DS_Store
 *_timelock.mat
-code/utilities/getTimeresolvedISCofRespresentation.m
-/drawings
-/photos
-/dnn_features
 /vgg16_imagenet

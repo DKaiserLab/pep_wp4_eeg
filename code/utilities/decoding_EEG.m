@@ -1,27 +1,17 @@
-%% Housekeeping
-clear 
-clc
-close all
+function decoding_EEG(cfg)
+
+if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 6;end
 
 %% Define Parameters
-ss=[102 103 104 106 109 110 111 112 113 115 116 117 120 122];
-sn=length(ss);
 s_idx=1;
-
-output_dir=fullfile(pwd, '..', '..', 'derivatives');
-smoothing_window=6;
-
-%cd('C:\MATLAB\Toolboxes\CoSMoMVPA-master\mvpa')%'C:\temp\Scene
-%Clips 2\Toolboxes\CoSMoMVPA-master\mvpa\'
-%addoath 'C:\MATLAB\Toolboxes\fieldtrip-20220104\
 ft_defaults;
 
 %% Decoding
-for s=ss% for all subjects
-    
-    filepath = fullfile(pwd, '..', '..', 'derivatives', ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock', '.mat']);
+for s=cfg.subNums % for all subjects
+
+    filepath = fullfile(cfg.outputPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w', '.mat']);
     load(filepath);
-    
+
     % get time info
     res.time=timelock.time;
 
@@ -37,13 +27,14 @@ for s=ss% for all subjects
 
     ds.sa.chunks=[1:length(ds.sa.targets)]';
     ds.sa.chunks=cosmo_chunkize(ds,nch);
-    
-    
+
+    display(['Subject ' num2str(s_idx) ' of ' num2str(cfg.n) '.']);
+
     % conduct decoding analysis at every time point
-    
+
     for tp=1:max(ds.fa.time)% for all time points
 
-        display(['Subject ' num2str(s_idx) ' of ' num2str(sn) '. Time point ' num2str(tp) ' of ' num2str(max(ds.fa.time)) '.']);
+        % display(['Subject ' num2str(s_idx) ' of ' num2str(cfg.n) '. Time point ' num2str(tp) ' of ' num2str(max(ds.fa.time)) '.']);
 
         ds_tp=cosmo_slice(ds,ismember(ds.fa.time,tp),2);
 
@@ -52,10 +43,10 @@ for s=ss% for all subjects
         n_feat=length(unique(ds_tp.fa.chan));
         [coeff,x,LATENT,~,x_exp,mu]=pca(ds_tp.samples);
         for ccx=1:length(x_exp)
-           if sum(x_exp(1:ccx))>=99
-              n_feat=ccx;
-             break
-          end
+            if sum(x_exp(1:ccx))>=99
+                n_feat=ccx;
+                break
+            end
         end
         ds_tp.samples=x(:,1:n_feat);
         ds_tp.fa.chan=1:n_feat;
@@ -68,8 +59,8 @@ for s=ss% for all subjects
         % 1-50 bathrooms
         % 51-100 kitchen
 
-        bathroom_logical=ismember(ds.sa.targets,[1:50]);
-        kitchen_logical=ismember(ds.sa.targets,[51:100]);
+        bathroom_logical=ismember(ds.sa.targets, 1:50);
+        kitchen_logical=ismember(ds.sa.targets, 51:100);
 
         ds_class.sa.targets(bathroom_logical,1)=1;
         ds_class.sa.targets(kitchen_logical,1)=2;
@@ -84,32 +75,48 @@ for s=ss% for all subjects
         res.order(s_idx) = s;
 
     end % time points
-
-s_idx=s_idx+1;
+    s_idx=s_idx+1;
 end % subjects
 
 % smooth the decoding curve with a rolling average
-res.dec_acc=smoothdata(res.dec_acc,2,'movmean',smoothing_window);
+res.dec_acc=smoothdata(res.dec_acc,2,'movmean',cfg.smoothing_window);
 
-file_name=['PEP_WP4_EEG_decoding_accuracy',num2str(smoothing_window),'_TP_RA.mat'];
+file_name=['PEP_WP4_EEG_decoding_accuracy',num2str(cfg.smoothing_window),'_TP_RA_reref_w.mat'];
 
 % save decoding data to file
-if ~exist(output_dir, 'dir')
-    mkdir(output_dir);
+if ~exist(cfg.outputPath, 'dir')
+    mkdir(cfg.outputPath);
 end
 
-cd(output_dir);
+cd(cfg.outputPath);
 save(file_name,'res');
 
 %% plot decoding results
+if cfg.plotting
 
-dec_acc_mean=squeeze(mean(res.dec_acc,1));
+    % graphic parameters
+    set(0, 'DefaultTextFontSize', cfg.FontSize);
+    set(0, 'DefaultAxesFontSize', cfg.FontSize);
+    set(0, 'DefaultTextFontName', cfg.FontName);
+    set(0, 'DefaultAxesFontName', cfg.FontName);
 
-figure();
-decoding_plot=plot(res.time, dec_acc_mean(:));
-chance=1/2;
-     
-yline(chance,'k--');
-xline(0,'k');
-title(['pep_wp4_eeg decoding']);
+    dec_acc_mean=squeeze(mean(res.dec_acc,1));
 
+    figure();
+    plot(res.time, dec_acc_mean(:), 'LineWidth', 2);
+    yline(1/2,'k--', 'LineWidth', 2);
+    text(0.5, 0.5, 'Chance Level', 'Color', 'r', ...
+        'VerticalAlignment', 'baseline', 'HorizontalAlignment', 'left');
+    yline(max(dec_acc_mean), 'k--', ['max ', num2str(max(dec_acc_mean))])
+    xline(0,'k', 'LineWidth', 2);
+    title('decoding');
+    set(gcf, 'color', [1 1 1]); % white background
+    set(gca, 'box', 'off');
+
+    if cfg.saving
+        output_dir=fullfile('..', 'Plots');
+        filename = fullfile(output_dir, 'decoding_accuracy_reref_w.jpg');
+        saveas(gcf, filename);
+    end
+end
+end
