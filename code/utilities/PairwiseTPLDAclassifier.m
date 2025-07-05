@@ -3,6 +3,11 @@ function [res, cfg] = PairwiseTPLDAclassifier(cfg)
 % evaluate input
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
 if ~isfield(cfg, 'makeBetweenComparison'); cfg.makeBetweenComparison = false; end
+if ~isfield(cfg, 'nTrials2average'); cfg.nTrials2average = 2; end
+if cfg.nTrials2average ~= 1 && mod(cfg.nTrials2average, 2) ~= 0
+    error('nTrials2average must be 1 or a even number')
+end 
+if ~isfield(cfg, 'nBlocks'); cfg.nBlocks = 20; end
 makeBetweenComparison = cfg.makeBetweenComparison;
 
 % Define classifiers
@@ -38,6 +43,15 @@ for iSub = 1:length(cfg.subNums)
     %convert to cosmo
     ds=cosmo_meeg_dataset(timelock);
 
+    % define chunks
+    nch=cfg.nBlocks/cfg.nTrials2average; % is based on many repetitions we have and over how many trials we average
+    ds.sa.chunks=(1:length(ds.sa.trialinfo))';
+    ds.sa.targets=ds.sa.trialinfo;
+    ds.sa.chunks=cosmo_chunkize(ds, nch);
+
+    % averaging trials
+    ds = cosmo_average_samples(ds);
+
     % time range for decoding
     decoding_start = 0;
     decoding_end = 0.3;
@@ -49,7 +63,6 @@ for iSub = 1:length(cfg.subNums)
     res.included_time=time_points;
     clear timelock%new
 
-
     %% Pairwise decoding
     % Initialize RDM
     rdm = zeros(cfg.nTrials, cfg.nTrials, length(time_points));
@@ -57,10 +70,16 @@ for iSub = 1:length(cfg.subNums)
     disp('')
 
     for tp=1:length(time_points)%1:max(ds.fa.time)
+
+        % select time point
         tp_idx = time_points(tp);
+        ds_tp=cosmo_slice(ds, ismember(ds.fa.time,tp_idx),2);
 
-
-        disp(char(datetime))
+        % do PCA
+        [ds_pca, ~] = cosmo_map_pca(ds_tp,'pca_explained_ratio', 0.95);
+        ds_tp.samples = ds_pca.samples;
+        ds_tp.fa = ds_pca.fa;
+        ds_tp.a = ds_pca.a;
 
         if isempty(gcp('nocreate'))
             parpool(8);
@@ -81,17 +100,10 @@ for iSub = 1:length(cfg.subNums)
                 end
 
                 % Subset data for the two stimuli
-                ds_stim=cosmo_slice(ds, ds.sa.trialinfo == stim1 | ds.sa.trialinfo == stim2);
-                ds_stim=cosmo_slice(ds_stim, ismember(ds.fa.time,tp_idx),2);
+                ds_stim=cosmo_slice(ds_tp, ds_tp.sa.trialinfo == stim1 | ds_tp.sa.trialinfo == stim2);
 
                 % Rename target
                 ds_stim.sa.targets = (ds_stim.sa.trialinfo == stim1) + 1;
-
-
-                nch=20;
-
-                ds_stim.sa.chunks=[1:length(ds_stim.sa.targets)]';
-                ds_stim.sa.chunks=cosmo_chunkize(ds_stim,nch);
 
                 % Define partitions
                 partitions = cosmo_nchoosek_partitioner(ds_stim, 1);
