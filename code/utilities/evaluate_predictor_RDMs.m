@@ -150,7 +150,7 @@ for rdm_num = 1:numel(cfg.predictor_RDMs)
 end
 
 
-% check is RDMs and Lebsl have same length
+% check is RDMs and labels have same length
 if length(RDMs) == length(labels)
     disp('Predictor RDMs evaluated')
 else

@@ -10,8 +10,11 @@ if ~isfield(cfg, 'order_predictors'); cfg.order_predictors = false;end
 if ~isfield(cfg, 'partial_cor'); cfg.partial_cor = true;end
 if ~isfield(cfg, 'save_name'); cfg.save_name = 'compare_roi_RDMs_to_predictor_RDMs';end
 if ~isfield(cfg, 'xaxis_labels'); cfg.xaxis_labels = true;end
+
 cfg.plot_rdm = false;
-if ~isfield(cfg, 'plot_type'); cfg.plot_type = 'bar';end
+cfg.ISC_type = 'pairRep';
+
+if ~isfield(cfg, 'plot_type'); cfg.plot_type = 'bar';end %?
 if ~isfield(cfg, 'dnns'); cfg.dnns = {cfg.dnn};end
 if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.3, 0.5];end
 if ~isfield(cfg, 'ISC_type'); cfg.ISC_type = 'pairRep';end
@@ -19,7 +22,9 @@ if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 6;end
 
 % prepare figure
 if cfg.plotting
-    figure;
+    legend_labels = {};
+    plot_counter = 1;
+    fig = figure;
     hold on
 end
 
@@ -32,9 +37,9 @@ for cate_num = 1:numel(cfg.categories)
 
     % get canditate/predictor RDMs
     RDMs = struct;
-    RDMs(1).name = d.([category,'_RDM']).(cfg.ISC_type).name;
-    RDMs(1).color = d.([category,'_RDM']).(cfg.ISC_type).color;
-    RDMs(1).RDM = d.([category,'_RDM']).(cfg.ISC_type).RDM(:, :, 1);
+    RDMs(1).name = d.ISC.([category,'_RDM']).(cfg.ISC_type).name;
+    RDMs(1).color = d.ISC.([category,'_RDM']).(cfg.ISC_type).color;
+    RDMs(1).RDM = d.ISC.([category,'_RDM']).(cfg.ISC_type)(1).RDM; % (:, :, 1);
     labels = {RDMs.name};
     [RDMs, cfg.labels] = evaluate_predictor_RDMs(d, RDMs, labels, cfg, category);
 
@@ -42,7 +47,7 @@ for cate_num = 1:numel(cfg.categories)
     for iTp = 1:numel(d.(cfg.ISC_type).included_time)
 
         % get time point RDM
-        RDMs(1).RDM = d.([category,'_RDM']).(cfg.ISC_type).RDM(:, :, iTp);
+        RDMs(1).RDM = d.ISC.([category,'_RDM']).(cfg.ISC_type)(iTp).RDM; %(:, :, iTp);
 
         % partial correlation
         if cfg.partial_cor
@@ -73,13 +78,15 @@ for cate_num = 1:numel(cfg.categories)
             end
 
             % plot line
-            if strcmp(category, cfg.categories{1})
-                p(var) = plot(x, y, 'color', clr, 'LineStyle', '--', 'LineWidth', 1);
+            if strcmp(category, cfg.categories{1}) % bathroom
+                p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '--', 'LineWidth', 1);
                 yline(0, '--')
-            else
-                p(var) = plot(x, y, 'color', clr, 'LineStyle', ':', 'LineWidth', 1);
+            else % kitchen
+                p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', ':', 'LineWidth', 1);
                 yline(0, '--')
             end
+            legend_labels{plot_counter} = [strrep(cfg.RDM_to_partial_out{var}, '_', '-'), ' ', category];
+            plot_counter = plot_counter+1;
         end
     end
 end
@@ -104,7 +111,9 @@ if cfg.plotting
             clr = [.4, .9, 1];
         end
         % plot mean
-        p(end) = plot(x, y, 'color', clr, 'LineStyle', '-', 'LineWidth', 3);
+        p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '-', 'LineWidth', 3);
+
+        legend_labels{plot_counter} = [strrep(cfg.RDM_to_partial_out{var}, '_', '-'),' mean'];
 
         if cfg.partial_cor
             ylabel(['Partial correlation [r]', newline]);
@@ -112,22 +121,31 @@ if cfg.plotting
             ylabel([cfg.correlation_type, ' correlation [r]', newline]);
         end
 
-        title('Time-resolved correlation reference RDMs with predictors')
-%         if isfield(cfg, 'ylim')
-%             ylim(cfg.ylim)
-%         end
-
-        set(gca, 'LineWidth', 1, 'FontName', cfg.FontName, 'FontSize', cfg.FontSize, 'FontWeight', 'bold')
-        ax = gca;
-        ax.Box = 'off';
-
-        % add legend to last plot
-        if cfg.add_legend
-            legend(p, cfg.RDM_to_partial_out, 'Location','northeastoutside');
-        end
-
-        %     % saving
-        %     fig_path = fullfile(pwd, 'figures', ['exp_', num2str(cfg.exp_num)], 'compare_roi_RDMs_to_predictor_RDMs');
-        %     save_plot(cfg.save_name, fig_path)
+        set(gca, 'LineWidth', 1, 'FontName', cfg.FontName, 'FontSize', cfg.FontSize, 'FontWeight', 'bold');
+       
+        plot_counter = plot_counter + 1;
     end
+
+    % add legend
+    if cfg.add_legend
+        legend(p, legend_labels, 'Location','northeastoutside');
+    end
+
+    title('Time-resolved correlation reference RDMs with predictors')
+
+    if isfield(cfg, 'ylim')
+        ylim(cfg.ylim)
+    end
+
+    xlabel('time');
+    set(gca, 'XTickLabel', d.pairRep.all_time(x([1, 10:10:60])));
+    set(gca, 'box', 'off');
+
+    % saving
+    if cfg.saving
+        fig_path = fullfile(cfg.figPath, ['exp_', num2str(cfg.exp_num)], 'compare_roi_RDMs_to_predictor_RDMs');
+        fig_name = 'Time-resolved-corr-reference-RDMs-with-predictors';
+        save_plot(fig, fig_name, fig_path)
+    end
+end
 end
