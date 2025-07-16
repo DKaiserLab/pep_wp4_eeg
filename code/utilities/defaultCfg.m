@@ -16,16 +16,17 @@ if ~isfield(cfg, 'ISC_types'); cfg.ISC_types = {'pairRep'};end
 
 % analsyis paramters
 if ~isfield(cfg, 'dnn'); cfg.dnn = 'vgg16_imagenet';end
-if ~isfield(cfg, 'functionPath'); cfg.functionPath = fullfile(pwd,'utilities');end
-if ~isfield(cfg, 'analysis_names'); cfg.analysis_names = {'typical', 'control'};end
+if ~isfield(cfg, 'analysis_names'); cfg.analysis_names = {'typical', 'control', 'photo'};end
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
 if ~isfield(cfg, 'saving'); cfg.saving = true; end
 if ~isfield(cfg, 'dissimilarity'); cfg.dissimilarity = true; end
+if ~isfield(cfg, 'classifier'); cfg.classifier = @cosmo_classify_lda; end
 
 % define paths
+if ~isfield(cfg, 'functionPath'); cfg.functionPath = fullfile(pwd,'utilities');end
 cfg.sourcedataPath = fullfile(pwd, '..','sourcedata');
 cfg.outputPath = fullfile(pwd, '..','derivatives');
-cfg.locPath = fullfile(pwd, '..', 'localizer');
+cfg.figPath = fullfile(pwd, '..', 'plots');
 cfg.behPath = fullfile(cfg.sourcedataPath, 'beh');
 
 % other standard configurations
