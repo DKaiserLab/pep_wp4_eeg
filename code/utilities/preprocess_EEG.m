@@ -32,6 +32,9 @@ for s=cfg.subNums% for each subject
     cfg_temp.trialdef.poststim=poststim;
     cfg_temp=ft_definetrial(cfg_temp);
 
+
+    disp(['Start preprocessing for sub-', num2str(s)]);
+    
     %% Load Data and Preprocess Data
 
     cfg_temp.hpfilter='no';
@@ -86,16 +89,16 @@ for s=cfg.subNums% for each subject
     %% ICA
     cfg_temp = [];
     cfg_temp.method='runica';
-    cfg_temp.numcomponent=30; % oder mehr?
+    cfg_temp.numcomponent=30;
     comp = ft_componentanalysis(cfg_temp, data);
 
     % component topoplots
     figure;
     cfg_temp=[];
-    cfg_temp.component = 1:30;%'all';
+    cfg_temp.component = 1:30; %'all';
     layout = 'easycap-M1.txt';
     cfg_temp.layout=layout;
-    cfg_temp.comment='auto';%'no'
+    cfg_temp.comment='auto'; %'no'
     ft_topoplotIC(cfg_temp, comp);
 
     % component timecourse plots
@@ -111,19 +114,19 @@ for s=cfg.subNums% for each subject
     cfg_temp.demean='no';
     data=ft_rejectcomponent(cfg_temp, comp, data);
 
-    % define output_path, create folders
-    output_path = fullfile(cfg_temp.outputPath, ['sub-', num2str(s)], 'eeg');
+    %% define output_path, create folders
+    output_path = fullfile(cfg.outputPath, ['sub-', num2str(s)], 'eeg');
     if ~exist(output_path, 'dir')
         mkdir(output_path);
     end
 
-    % transform to "timelocked" data and save the output
+    %% transform to "timelocked" data and save the output
     cfg_temp=[];
-    cfg_temp.outputfile = fullfile(cfg.outputPath, ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w']);
+    cfg_temp.outputfile = fullfile(output_path, ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w_test']);
     cfg_temp.keeptrials='yes';
-    save(fullfile(cfg.outputPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w']),'data');
-    data=ft_timelockanalysis(cfg_temp,data);
-
+    timelock = ft_timelockanalysis(cfg_temp, data);
+    save(fullfile(output_path, ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w_test']),'timelock');
+    
     % if you want: display the data
     %ft_databrowser(cfg,data);
 
