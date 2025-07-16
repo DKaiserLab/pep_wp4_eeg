@@ -1,11 +1,12 @@
 function PairwiseDecodingPlots(cfg, res)
 
-
 if ~isfield(cfg, 'makeBetweenComparison'); cfg.makeBetweenComparison = false;end
 if ~isfield(cfg, 'labels'); cfg.labels = cfg.subNums;end
+if ~isfield(cfg, 'plotMatrix'); cfg.plotMatrix = false;end
+if ~isfield(cfg, 'dissimilarity'); cfg.dissimilarity = true;end
 
 % fileName = fullfile(cfg.outputPath, 'group_level', 'RDM',...
-%     'results_RDM_of_pairwise_decoding_reref_w.mat');
+%     'results_RDM_of_pairwise_decoding_reref_pca.mat');
 % load(fileName);
 
 % Get subjects and timepoints
@@ -78,42 +79,42 @@ set(gca, 'box', 'off');
 hold off;
 
 %% rdm
+if cfg.plotMatrix
+    % take mean across subjects
+    mean_all_rdm_data = squeeze(mean(all_rdm_data, 3));
 
-% take mean across subjects
-mean_all_rdm_data = squeeze(mean(all_rdm_data, 3));
+    figure;
+    % tiledlayout(4, 4);
+    title('Mean pairwise decoding accuracy');
 
-figure;
-% tiledlayout(4, 4);
-title('Mean pairwise decoding accuracy');
+    for tp = 1:num_timepoints
+        %     if ismember(tp-1, (16:16:num_timepoints))
+        %         figure;
+        %         tiledlayout(2, 2);
+        %     else
+        %         nexttile;
+        %     end
 
-for tp = 1:num_timepoints
-    %     if ismember(tp-1, (16:16:num_timepoints))
-    %         figure;
-    %         tiledlayout(2, 2);
-    %     else
-    %         nexttile;
-    %     end
+        nexttile;
+        set(gcf, 'color', [1 1 1]); % white background
+        % get RDM for tp
+        tpRDM = mean_all_rdm_data(:, :, tp);
+        alltpRDMs(:, tp) = reshape(tpRDM, [], 1);
 
-    nexttile;
-    set(gcf, 'color', [1 1 1]); % white background
-    % get RDM for tp
-    tpRDM = mean_all_rdm_data(:, :, tp);
-    alltpRDMs(:, tp) = reshape(tpRDM, [], 1);
+        % plot RDM
+        imagesc(tpRDM, [0.50, 0.65])
+        colorbar;
+        title(timeseries(timepoints(tp)));
+    end
 
-    % plot RDM
-    imagesc(tpRDM, [0.50, 0.65])
+    % get inter-tp correlation
+    nexttile
+    corrtps = corr(alltpRDMs, 'type', 'Spearman', 'rows', 'pairwise');
+
+    imagesc(corrtps, [-0.7, 0.7])
     colorbar;
-    title(timeseries(timepoints(tp)));
+    title('inter-timepoint correlation');
 end
-
-% get inter-tp correlation
-nexttile
-corrtps = corr(alltpRDMs, 'type', 'Spearman', 'rows', 'pairwise');
-
-imagesc(corrtps, [-0.7, 0.7])
-colorbar;
-title('inter-timepoint correlation');
-
 
 %% Create bar plot with comparison of within and between category
 % % funktioniert noch nicht
@@ -169,59 +170,62 @@ title('inter-timepoint correlation');
 % end
 
 %% is-rdm
-figure;
-tiledlayout(3, 3);
-title('IS RDMs across the whole RDM');
+if cfg.plotMatrix
+    figure;
+    tiledlayout(3, 3);
+    title('IS-RDMs across the whole RDM');
 
-for i_tp = 1:num_timepoints
-    if ismember((i_tp-1), (9:9:num_timepoints))
-        figure;
-        tiledlayout(3, 3);
-    end
-    nexttile;
-    set(gcf, 'color', [1 1 1]); % white background
+    for i_tp = 1:num_timepoints
+        if ismember((i_tp-1), (9:9:num_timepoints))
+            figure;
+            tiledlayout(3, 3);
+        end
+        nexttile;
+        set(gcf, 'color', [1 1 1]); % white background
 
-    % make a matrix with vectorized RDMs
-    for i_sub = 1:cfg.n
-        RDMmat(:, i_sub) = squareform(all_rdm_data(:, :, i_sub, i_tp));
-    end
+        % make a matrix with vectorized RDMs
+        for i_sub = 1:cfg.n
+            RDMmat(:, i_sub) = squareform(all_rdm_data(:, :, i_sub, i_tp));
+        end
 
-    % make and plot IS-RDM
-    cfg.correlation_type = 'spearman';
-    cfg.cell_label_style = 'coef';
-    cfg.new_figure = false;
-    if ~cfg.dissimilarity
-        cfg.MinColorValue = -0.2;
-        cfg.MaxColorValue = 0.2;
-    else
-        cfg.MinColorValue = 0.8;
-        cfg.MaxColorValue = 1.2;
+        % make and plot IS-RDM
+        cfg.correlation_type = 'spearman';
+        cfg.cell_label_style = 'coef';
+        cfg.new_figure = false;
+        if ~cfg.dissimilarity
+            cfg.MinColorValue = -0.2;
+            cfg.MaxColorValue = 0.2;
+        else
+            cfg.MinColorValue = 0.8;
+            cfg.MaxColorValue = 1.2;
+        end
+        [~, mat_out, ~] = make_RDM(RDMmat, cfg);
+        mat_out(eye(size(mat_out)) == 1) = 0;
+        medianISC = median(squareform(mat_out), 'omitnan');
+        title([timeseries(timepoints(i_tp)), ' (median: ', num2str(round(medianISC, 4)), ')']);
     end
-    [~, mat_out, ~] = make_RDM(RDMmat, cfg);
-    mat_out(eye(size(mat_out)) == 1) = 0;
-    medianISC = median(squareform(mat_out), 'omitnan');
-    title([timeseries(timepoints(i_tp)), ' (median: ', num2str(round(medianISC, 4)), ')']);
 end
 
 %% Lineplot
 % without error
 figure;
-plot(timepoints, mean(bathroom_accuracy, 1, 'omitnan'), 'color', 'red');
+set(gcf, 'color', [1 1 1]); % white background
+colors = lines(length(cfg.categories));
+plot(timepoints, mean(bathroom_accuracy, 1, 'omitnan'), 'color', colors(1, :), 'LineWidth', 2);
 hold on;
 set(gcf, 'color', [1 1 1]); % white background
-plot(timepoints, mean(kitchen_accuracy, 1, 'omitnan'), 'color', 'blue');
+plot(timepoints, mean(kitchen_accuracy, 1, 'omitnan'), 'color', colors(2, :), 'LineWidth', 2);
 
 xlabel('time');
 ylabel('mean-accuracy');
 yline(0.5, '--');
-xticks([1, 10:10:60]);
+% xticks(100:10:160);
 xticklabels(timeseries(timepoints([1, 10:10:60])));
 legend('bathroom', 'kitchen');
 
 % with error
 figure; hold on;
 set(gcf, 'color', [1 1 1]); % white background
-colors = lines(length(cfg.categories));
 
 accuracies = {bathroom_accuracy, kitchen_accuracy};
 for i=1:length(cfg.categories)
@@ -241,7 +245,7 @@ end
 xlabel('time');
 ylabel('mean-accuracy');
 yline(0.5, '--');
-xticks([1, 10:10:60]);
+%xticks(100:10:160);
 xticklabels(timeseries(timepoints([1, 10:10:60])));
 legend(h, cfg.categories);
 end 
