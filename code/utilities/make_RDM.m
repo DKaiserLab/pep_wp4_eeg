@@ -7,6 +7,7 @@ if ~isfield(cfg, 'cell_label_style'); cfg.cell_label_style = 'none'; end
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
 if ~isfield(cfg, 'dissimilarity'); cfg.dissimilarity = true; end
 if ~isfield(cfg, 'regressOutMean'); cfg.regressOutMean = false; end
+if ~isfield(cfg, 'plot_rdm'); cfg.plot_rdm = false; end
 
 if istable(mat_in)
 
@@ -53,7 +54,7 @@ else
 end
 
 % plotting
-if cfg.plotting == 1
+if cfg.plot_rdm
     RDM_plot = plot_RDM(mat_out, pval, cfg);
 else
     RDM_plot = [];
