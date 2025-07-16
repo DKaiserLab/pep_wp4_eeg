@@ -1,7 +1,7 @@
 function RDM_plot = plot_RDM(mat_out, pval, cfg)
 
 % evaluate input
-if ~isfield(cfg, 'labels'); cfg.labels = [];end
+if ~isfield(cfg, 'labels'); cfg.labels = cfg.subNums;end % []
 if ~isfield(cfg, 'cell_label_style'); cfg.cell_label_style = 'none'; end
 if ~isfield(cfg, 'colormap'); cfg.colormap = cfg.colormaps.white_zero; end
 if ~isfield(cfg, 'MinColorValue'); cfg.MinColorValue = 0; end
@@ -37,7 +37,7 @@ if width(mat_out) == length(cfg.labels)
         'Colormap', cfg.colormap, 'Colorbar', true, 'MinColorValue', cfg.MinColorValue, 'MaxColorValue', cfg.MaxColorValue,...
         'TickAngle', 45, 'ShowAllTicks', show_all_ticks);
 
-    % without labels
+% without labels
 else
     RDM_plot = deoras_heatmap(mat_out, [], [], cell_labels,...
         'Colormap', cfg.colormap, 'Colorbar', true, 'MinColorValue', cfg.MinColorValue, 'MaxColorValue', cfg.MaxColorValue,...
