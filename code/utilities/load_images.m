@@ -15,7 +15,6 @@ photo_image_folder = fullfile(pwd, '..', 'photos');
 photo_image_files = dir(fullfile(photo_image_folder, '*.png'));
 photo_image_files = struct2table(photo_image_files);
 
-
 for category = cfg.categories
     category = char(category);
 
@@ -23,19 +22,19 @@ for category = cfg.categories
         analysis_name = char(analysis_name);
 
         % filter for category and analysis name
-        if strcmp(analysis_name, 'control')
-            image_idx = (contains(drawing_image_files.name, category(1:3)) & ...
-                contains(drawing_image_files.name, 'copy'));
-            file_list = drawing_image_files(image_idx, :);
-        elseif strcmp(analysis_name, 'typical')
-            image_idx = (contains(drawing_image_files.name, category(1:3)) & ...
-                ~contains(drawing_image_files.name, 'copy'));
-            file_list = drawing_image_files(image_idx, :);
-        elseif strcmp(analysis_name, 'photos')
-            image_idx = (contains(photo_image_files.name, category(1:3)));
-            file_list = photo_image_files(image_idx, :);
+        switch analysis_name
+            case {'control', 'typical'}
+                files = drawing_image_files;
+                is_copy = strcmp(analysis_name, 'control');
+                image_idx = contains(drawing_image_files.name, category(1:3)) & ...
+                    (contains(files.name, 'copy') == is_copy);
+            case 'photos'
+                files = photo_image_files;
+                image_idx = contains(files.name, category(1:3));
         end
-        
+
+        file_list = files(image_idx, :);
+
 
         for i = 1:height(file_list)
 
@@ -56,7 +55,7 @@ for category = cfg.categories
             images.(analysis_name).(category).image_names{i} = field_name;
 
             % get subject numbers from images names
-            images.(analysis_name).(category).sub_num_img(i) = str2num(field_name(1:3));
+            images.(analysis_name).(category).sub_num_img(i) = str2double(field_name(1:3));
 
             % show progress
             disp(['Loaded image: ',field_name])
