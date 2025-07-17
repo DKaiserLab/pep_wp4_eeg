@@ -4,6 +4,7 @@ if ~isfield(cfg, 'makeBetweenComparison'); cfg.makeBetweenComparison = false;end
 if ~isfield(cfg, 'labels'); cfg.labels = cfg.subNums;end
 if ~isfield(cfg, 'plotMatrix'); cfg.plotMatrix = false;end
 if ~isfield(cfg, 'dissimilarity'); cfg.dissimilarity = true;end
+if ~isfield(cfg, 'bar'); cfg.bar = false;end
 
 % fileName = fullfile(cfg.outputPath, 'group_level', 'RDM',...
 %     'results_RDM_of_pairwise_decoding_reref_pca.mat');
@@ -14,6 +15,7 @@ fns = fieldnames(res);
 subjects = fns(3:end);
 timepoints = res.included_time;
 timeseries = res.all_time;
+x  = timeseries(timepoints);
 
 % Initialize data storage
 num_timepoints = numel(timepoints);
@@ -41,51 +43,53 @@ set(0, 'DefaultTextFontName', cfg.FontName);
 set(0, 'DefaultAxesFontName', cfg.FontName);
 
 %% bar plot
-% Compute mean and standard derivation for each tp
-% set parameters
-figure;
-hold on;
-set(gcf, 'color', [1 1 1]); % white background
+if cfg.bar
+    % Compute mean and standard derivation for each tp
+    % set parameters
+    figure;
+    hold on;
+    set(gcf, 'color', [1 1 1]); % white background
 
+    % compute standard error of the mean
+    sem = std(all_data, 0, 1) ./ sqrt(cfg.n);
+    mean_acc = mean(all_data, 1, 'omitnan');
 
-% compute standard error of the mean
-sem = std(all_data, 0, 1) ./ sqrt(cfg.n);
-mean_acc = mean(all_data, 1, 'omitnan');
+    % Bar plot with error bars
+    bar(x,mean_acc, 'FaceColor', 'flat');
+    h = errorbar(x, mean_acc, sem, 'k', 'LineStyle', 'none', 'LineWidth', 1.5);
+    set(h, 'lineWidth', 2);
+    set(h, 'linestyle', 'none');
+    %set(h, 'barWidth', 0.2);
 
+    % Add horizontal line at chance level
+    yline(0.5, '--r', 'LineWidth', 2);
+    text(num_timepoints + 0.8, 0.5, 'Chance Level', 'Color', 'r', ...
+        'FontSize', 12, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'left');
 
-% Bar plot with error bars
-bar(mean_acc, 'FaceColor', 'flat');
-h = errorbar(1:num_timepoints, mean_acc, sem, 'k', 'LineStyle', 'none', 'LineWidth', 1.5);
-set(h, 'lineWidth', 2);
-set(h, 'linestyle', 'none');
-%set(h, 'barWidth', 0.2);
+    % Mark stimulus onset
+    xline(0, '--k');
 
-% Add horizontal line at chance level
-yline(0.5, '--r', 'LineWidth', 2);
-text(num_timepoints + 0.8, 0.5, 'Chance Level', 'Color', 'r', ...
-    'FontSize', 12, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'left');
+    % Customize plot
+    xlim([min(x)-min(x)-0.01, max(x)+0.01])
+    ylim([0.45,0.6]);
+    set(gca, 'TickDir', 'out');
+    xlabel('time [s]');
+    ylabel('accuracy');
 
-% Customize plot
-xticks([1, 10:10:60]);
-xticklabels(timeseries(timepoints([1, 10:10:60])));
-set(gca, 'TickDir', 'out');
-xlabel('time [s]');
-ylabel('accuracy');
-ylim([0.45,0.6]);
-set(gca, 'linewidth', 2);
-title({'Mean pairwise decoding results across timepoints', 'with standard error of the mean'});
-set(gca, 'box', 'off');
+    % set(gca, 'linewidth', 2);
+    title({'Mean pairwise decoding results across timepoints', 'with standard error of the mean'});
+    set(gca, 'box', 'off');
 
-hold off;
-
+    hold off;
+end
 %% rdm
 if cfg.plotMatrix
     % take mean across subjects
     mean_all_rdm_data = squeeze(mean(all_rdm_data, 3));
 
-    figure;
+    fig = figure('position',[1,1,1000,600], 'unit','centimeters');;
     % tiledlayout(4, 4);
-    title('Mean pairwise decoding accuracy');
+    title('Mean pairwise decoding accuracy per timepoint');
 
     for tp = 1:num_timepoints
         %     if ismember(tp-1, (16:16:num_timepoints))
@@ -114,6 +118,11 @@ if cfg.plotMatrix
     imagesc(corrtps, [-0.7, 0.7])
     colorbar;
     title('inter-timepoint correlation');
+    sgtitle('Mean decoding accuracy', 'FontSize', 18);
+
+    if cfg.saving
+        save_plot(fig, 'mean-pairwise-decoding-acc-bar', cfg.figPath);
+    end
 end
 
 %% Create bar plot with comparison of within and between category
@@ -169,65 +178,78 @@ end
 %     hold off;
 % end
 
-%% is-rdm
-if cfg.plotMatrix
-    figure;
-    tiledlayout(3, 3);
-    title('IS-RDMs across the whole RDM');
-
-    for i_tp = 1:num_timepoints
-        if ismember((i_tp-1), (9:9:num_timepoints))
-            figure;
-            tiledlayout(3, 3);
-        end
-        nexttile;
-        set(gcf, 'color', [1 1 1]); % white background
-
-        % make a matrix with vectorized RDMs
-        for i_sub = 1:cfg.n
-            RDMmat(:, i_sub) = squareform(all_rdm_data(:, :, i_sub, i_tp));
-        end
-
-        % make and plot IS-RDM
-        cfg.correlation_type = 'spearman';
-        cfg.cell_label_style = 'coef';
-        cfg.new_figure = false;
-        if ~cfg.dissimilarity
-            cfg.MinColorValue = -0.2;
-            cfg.MaxColorValue = 0.2;
-        else
-            cfg.MinColorValue = 0.8;
-            cfg.MaxColorValue = 1.2;
-        end
-        [~, mat_out, ~] = make_RDM(RDMmat, cfg);
-        mat_out(eye(size(mat_out)) == 1) = 0;
-        medianISC = median(squareform(mat_out), 'omitnan');
-        title([timeseries(timepoints(i_tp)), ' (median: ', num2str(round(medianISC, 4)), ')']);
-    end
-end
+% %% is-rdm
+% if cfg.plotMatrix
+%     figure;
+%     tiledlayout(3, 3);
+%     sgtitle('IS-RDMs across the whole RDM');
+% 
+%     for i_tp = 1:num_timepoints
+%         if ismember((i_tp-1), (9:9:num_timepoints))
+%             figure;
+%             tiledlayout(3, 3);
+%             sgtitle('IS-RDMs across the whole RDM');
+%         end
+%         nexttile;
+%         set(gcf, 'color', [1 1 1]); % white background
+% 
+%         % make a matrix with vectorized RDMs
+%         for i_sub = 1:cfg.n
+%             RDMmat(:, i_sub) = squareform(all_rdm_data(:, :, i_sub, i_tp));
+%         end
+% 
+%         % make and plot IS-RDM
+%         cfg.correlation_type = 'spearman';
+%         cfg.cell_label_style = 'coef';
+%         cfg.new_figure = false;
+%         %         if ~cfg.dissimilarity
+%         %             cfg.MinColorValue = -0.2;
+%         %             cfg.MaxColorValue = 0.2;
+%         %         else
+%         %             cfg.MinColorValue = 0.8;
+%         %             cfg.MaxColorValue = 1.2;
+%         %         end
+%         
+%         [~, mat_out, ~] = make_RDM(RDMmat, cfg);
+%         %         mat_out(eye(size(mat_out)) == 1) = 0;
+%         medianISC = median(squareform(mat_out), 'omitnan');
+%         title(sprintf('%0.3fs (median: %.4f)', x(i_tp), medianISC));
+%         %         title([timeseries(timepoints(i_tp)), ' (median: ', num2str(round(medianISC, 4)), ')']);
+%     end
+% end
 
 %% Lineplot
 % without error
-figure;
-set(gcf, 'color', [1 1 1]); % white background
-colors = lines(length(cfg.categories));
-plot(timepoints, mean(bathroom_accuracy, 1, 'omitnan'), 'color', colors(1, :), 'LineWidth', 2);
+fig=figure;
 hold on;
 set(gcf, 'color', [1 1 1]); % white background
-plot(timepoints, mean(kitchen_accuracy, 1, 'omitnan'), 'color', colors(2, :), 'LineWidth', 2);
+accuracies = {bathroom_accuracy, kitchen_accuracy};
+colors = lines(length(cfg.categories));
 
+for i=1:length(cfg.categories)
+    plot(x, mean(accuracies{i}, 1, 'omitnan'), 'color', colors(i, :), 'LineWidth', 2);
+end
+
+xlim([min(x)-min(x)-0.01, max(x)+0.01])
 xlabel('time');
 ylabel('mean-accuracy');
+
+% Mark stimulus onset and chance
 yline(0.5, '--');
-% xticks(100:10:160);
-xticklabels(timeseries(timepoints([1, 10:10:60])));
+xline(0, '--k');  
+
 legend('bathroom', 'kitchen');
+title('pairwise decoding mean accuracy');
+
+if cfg.saving
+    save_plot(fig, 'pairwise-decoding-mean-acc', cfg.figPath)
+end
 
 % with error
-figure; hold on;
+fig=figure; 
+hold on;
 set(gcf, 'color', [1 1 1]); % white background
 
-accuracies = {bathroom_accuracy, kitchen_accuracy};
 for i=1:length(cfg.categories)
 
     sem = std(accuracies{i}, 0, 1) ./ sqrt(cfg.n);
@@ -235,17 +257,25 @@ for i=1:length(cfg.categories)
     upper = mean_acc + sem;
     lower = mean_acc - sem;
 
-    fill([timepoints, fliplr(timepoints)], ... % timeseries(timepoints)
+    fill([x, fliplr(x)], ... % timeseries(timepoints)
         [upper, fliplr(lower)], colors(i, :), ...
         'EdgeColor', 'none', 'FaceAlpha', 0.3);
     %hold on;
-    h(i) = plot(timepoints, mean_acc, 'Color', colors(i, :), 'LineWidth', 2);
+    h(i) = plot(x, mean_acc, 'Color', colors(i, :), 'LineWidth', 2);
 end
 
+xlim([min(x)-min(x)-0.01, max(x)+0.01])
 xlabel('time');
 ylabel('mean-accuracy');
+% Mark stimulus onset and chance
 yline(0.5, '--');
-%xticks(100:10:160);
-xticklabels(timeseries(timepoints([1, 10:10:60])));
+xline(0, '--k');  
+
 legend(h, cfg.categories);
+title('pairwise decoding mean accuracy');
+
+if cfg.saving
+    save_plot(fig, 'pairwise-decoding-mean-acc-sem', cfg.figPath)
+end
+
 end 
