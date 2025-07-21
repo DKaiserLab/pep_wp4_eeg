@@ -12,9 +12,9 @@ if nargin < 4 % check how many input var
     %     all_net_act = {d.DNN.(cfg.dnn).(cfg.analysis_name).(category).all_net_act.(layer_name).net_act};
 
     if ismember(cfg.dnn, {'dino','clip'})
-        features_load_name = [char(cfg.analysis_name), '_', char(category)];
+        features_load_name = [char(cfg.analysis_name), '_', char(category), '.mat'];
     else
-        features_load_name = [char(cfg.analysis_name), '_', char(category), '_', char(layer_name)];
+        features_load_name = [char(cfg.analysis_name), '_', char(category), '_', char(layer_name), '.mat'];
     end
     features_load_path = fullfile(pwd, '..', 'dnn_features', cfg.dnn, ['exp_', num2str(cfg.exp_num)], features_load_name);
     load(features_load_path)

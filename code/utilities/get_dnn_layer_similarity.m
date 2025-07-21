@@ -6,7 +6,6 @@ if ~isfield(cfg, 'layer_type'); cfg.layer_type = 'late';end
 if ~isfield(cfg, 'dnn'); cfg.dnn = 'vgg16_imagenet';end
 if ~isfield(cfg, 'categories');  cfg.categories = {'kitchen', 'bathroom'};end
 if ~isfield(cfg, 'analysis_names');  cfg.analysis_names = {'typical', 'control', 'photo'};end
-dnn_features = struct;
 
 % load network
 [cfg, net] = load_dnn(cfg);
@@ -35,29 +34,28 @@ for layer=1:length(cfg.loi)
 
             if ~exist(features_save_path, 'dir')
                 mkdir(features_save_path)
-            else
-                if exist(file_name, 'file')
-                    load(file_name)
-
-                    % replace by filtered struct with only subjects that are included
-                    [cfg, dnn_features] = filter_existing_images(cfg, dnn_features);
-
-                else
-%                     dnn_features = struct;
-                    for I=1:numel(images.(cfg.analysis_name).(category).image_names)
-                        dnn_features.all_net_act(I).image_name = [];
-                        dnn_features.all_net_act(I).net_act = [];
-                    end
-                end
             end
-            
 
+            % if feature activations exist load them
+            if exist(file_name, 'file')
+                load(file_name)
+
+                % replace by filtered struct with only subjects that are included
+                [cfg, dnn_features] = filter_existing_images(cfg, dnn_features);
+
+            else
+                dnn_features = struct;
+                %                     for I=1:numel(images.(cfg.analysis_name).(category).image_names)
+                %                         dnn_features.all_net_act(I).image_name = [];
+                %                         dnn_features.all_net_act(I).net_act = [];
+                %                     end
+
+                % calculate and store activations of DNN for each image
+                [d, dnn_features] = images_activations(cfg, d, images, dnn_features, net, layer_name, category);
+            end
+          
             %show progress
             disp(['analysis ', cfg.analysis_name,' - layer #',num2str(layer), ' - category: ', category])
-
-            % calculate and store activations of DNN for each image
-
-            [d, dnn_features] = images_activations(cfg, d, images, dnn_features, net, layer_name, category);
 
             % save features
             save(file_name, 'dnn_features')

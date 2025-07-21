@@ -3,22 +3,16 @@ function d = compare_tp_RDMs_to_predictor_RDMs(d, cfg)
 % evaluate input
 if ~isfield(cfg, 'RDM_to_partial_out'); cfg.RDM_to_partial_out = {'typical_late', 'control_late'}; end
 if ~isfield(cfg, 'correlation_type'); cfg.correlation_type = 'pearson';end
-if ~isfield(cfg, 'plot_rdm'); cfg.plot_rdm = false;end
 if ~isfield(cfg, 'add_legend'); cfg.add_legend = true;end
 if ~isfield(cfg, 'show_single_cate'); cfg.show_single_cate = false;end
-if ~isfield(cfg, 'order_predictors'); cfg.order_predictors = false;end
 if ~isfield(cfg, 'partial_cor'); cfg.partial_cor = true;end
 if ~isfield(cfg, 'save_name'); cfg.save_name = 'compare_roi_RDMs_to_predictor_RDMs';end
 if ~isfield(cfg, 'xaxis_labels'); cfg.xaxis_labels = true;end
-
+if ~isfield(cfg, 'dnns'); cfg.dnns = {cfg.dnn};end
+%if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.3, 0.5];end
+if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 6;end
 cfg.plot_rdm = false;
 cfg.ISC_type = 'pairRep';
-
-if ~isfield(cfg, 'plot_type'); cfg.plot_type = 'bar';end %?
-if ~isfield(cfg, 'dnns'); cfg.dnns = {cfg.dnn};end
-if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.3, 0.5];end
-if ~isfield(cfg, 'ISC_type'); cfg.ISC_type = 'pairRep';end
-if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 6;end
 
 % prepare figure
 if cfg.plotting
@@ -138,7 +132,7 @@ if cfg.plotting
     end
 
     xlabel('time');
-    set(gca, 'XTickLabel', d.pairRep.all_time(x([1, 10:10:60])));
+    set(gca, 'XTickLabel', round(d.pairRep.all_time(x([1, 10:10:60])), 2));
     set(gca, 'box', 'off');
 
     % saving

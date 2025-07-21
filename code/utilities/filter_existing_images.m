@@ -21,4 +21,10 @@ end
 cfg.subNums_included = unique(cfg.subNums_included);
 cfg.subNums_included(cfg.subNums_included == 0) = [];
 
+% check if all subjects have feature activations
+for iSub = cfg.subNums
+    if ~ismember(iSub, cfg.subNums_included)
+        warning(['Missing feature activations for ', num2str(iSub)])
+    end
+end
 end

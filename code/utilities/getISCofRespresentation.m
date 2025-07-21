@@ -52,6 +52,7 @@ for cate_num = 1:numel(cfg.categories)
             median_mat_out = mat_out;
         end
 
+        % take median and standard error
         median_mat_out(eye(size(median_mat_out)) == 1) = 0;
         medianISC = median(squareform(median_mat_out), 'omitnan');
         seISC = std(squareform(median_mat_out), 'omitnan') / sqrt(length(squareform(median_mat_out)));
@@ -114,7 +115,7 @@ if cfg.plotting
     end
 
 
-    %% mean accuracy plot
+    %% mean accuracy plot (pairwise decoding)
     fig = figure;
 
     % get group stats
