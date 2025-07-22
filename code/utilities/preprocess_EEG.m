@@ -19,6 +19,7 @@ for s=cfg.subNums% for each subject
     fileName = fullfile(cfg.sourcedataPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '.eeg']);
 
     if exist(fullfile(cfg.outputPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w.mat']), 'file')
+        disp(['Pre-processed data for ', ['sub-', num2str(s)], ' exist already', newline]);
         continue
     end
 

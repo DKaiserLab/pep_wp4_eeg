@@ -6,6 +6,7 @@ if ~isfield(cfg, 'layer_type'); cfg.layer_type = 'late';end
 if ~isfield(cfg, 'dnn'); cfg.dnn = 'vgg16_imagenet';end
 if ~isfield(cfg, 'categories');  cfg.categories = {'kitchen', 'bathroom'};end
 if ~isfield(cfg, 'analysis_names');  cfg.analysis_names = {'typical', 'control', 'photo'};end
+cfg.regressOutMean = false;
 
 % load network
 [cfg, net] = load_dnn(cfg);
