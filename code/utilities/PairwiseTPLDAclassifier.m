@@ -1,14 +1,20 @@
 function [res, cfg] = PairwiseTPLDAclassifier(cfg)
 
 % evaluate input
+if ~isfield(cfg, 'var_threshold'); cfg.var_threshold = 0.99;end
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
+if ~isfield(cfg, 'pca'); cfg.pca = false; end
 if ~isfield(cfg, 'makeBetweenComparison'); cfg.makeBetweenComparison = false; end
-if ~isfield(cfg, 'nTrials2average'); cfg.nTrials2average = 2; end
-if cfg.nTrials2average ~= 1 && mod(cfg.nTrials2average, 2) ~= 0
-    error('nTrials2average must be 1 or a even number')
-end 
-if ~isfield(cfg, 'nBlocks'); cfg.nBlocks = 20; end
 makeBetweenComparison = cfg.makeBetweenComparison;
+% if ~isfield(cfg, 'nTrials2average'); cfg.nTrials2average = 2; end
+% if cfg.nTrials2average ~= 1 && mod(cfg.nTrials2average, 2) ~= 0
+%     error('nTrials2average must be 1 or a even number')
+% end 
+% if ~isfield(cfg, 'nBlocks'); cfg.nBlocks = 20; end
+
+% define decoding time window
+decoding_start = 0;
+decoding_end = 0.3;
 
 % Define classifiers
 classifier = @cosmo_classify_lda;
@@ -44,7 +50,8 @@ for iSub = 1:length(cfg.subNums)
     ds=cosmo_meeg_dataset(timelock);
 
     % define chunks
-    nch=cfg.nBlocks/cfg.nTrials2average; % is based on many repetitions we have and over how many trials we average
+%     nch=cfg.nBlocks/cfg.nTrials2average; % is based on many repetitions we have and over how many trials we average
+    nch = 20;
     ds.sa.chunks=(1:length(ds.sa.trialinfo))';
     ds.sa.targets=ds.sa.trialinfo;
     ds.sa.chunks=cosmo_chunkize(ds, nch);
@@ -53,8 +60,6 @@ for iSub = 1:length(cfg.subNums)
     ds = cosmo_average_samples(ds);
 
     % time range for decoding
-    decoding_start = 0;
-    decoding_end = 0.3;
     time_points = find(ds.a.fdim.values{2, 1} >= decoding_start &...
         ds.a.fdim.values{2, 1} <= decoding_end);
 
@@ -75,11 +80,13 @@ for iSub = 1:length(cfg.subNums)
         tp_idx = time_points(tp);
         ds_tp=cosmo_slice(ds, ismember(ds.fa.time,tp_idx),2);
 
-        % do PCA
-        [ds_pca, ~] = cosmo_map_pca(ds_tp,'pca_explained_ratio', 0.95);
-        ds_tp.samples = ds_pca.samples;
-        ds_tp.fa = ds_pca.fa;
-        ds_tp.a = ds_pca.a;
+        if cfg.pca
+            % do PCA
+            [ds_pca, ~] = cosmo_map_pca(ds_tp,'pca_explained_ratio', cfg.var_threshold);
+            ds_tp.samples = ds_pca.samples;
+            ds_tp.fa = ds_pca.fa;
+            ds_tp.a = ds_pca.a;
+        end
 
         if isempty(gcp('nocreate'))
             parpool(8);
@@ -125,12 +132,12 @@ for iSub = 1:length(cfg.subNums)
     end
 
     % Save the RDM
-    res.(subID2).rdm = rdm;
+    res.(subID2).rdm = rdm; 
     res.(subID2).mean_accuracy = mean_accuracy;
 end
 
 % save results
-outputFolder = fullfile(pwd, '..', '..', 'derivatives', 'group_level', 'RDM');
+outputFolder = fullfile(cfg.outputPath, 'group_level', 'RDM');
 if ~exist(outputFolder, 'dir')
     mkdir(outputFolder);
 end

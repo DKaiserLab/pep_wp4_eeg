@@ -1,6 +1,10 @@
 function decoding_EEG(cfg)
 
 if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 6;end
+if ~isfield(cfg, 'nch'); cfg.nch = 100;end
+if ~isfield(cfg, 'classifier'); cfg.classifier = @cosmo_classify_lda;end
+if ~isfield(cfg, 'var_threshold'); cfg.var_threshold = 0.99;end
+if ~isfield(cfg, 'plotting'); cfg.plotting = false;end
 
 %% Define Parameters
 s_idx=1;
@@ -23,27 +27,23 @@ for s=cfg.subNums % for all subjects
     ds.sa.targets=ds.sa.trialinfo(:,1);
 
     % add chunks
-    nch=100; % für pairwise:20
-
     ds.sa.chunks=[1:length(ds.sa.targets)]';
-    ds.sa.chunks=cosmo_chunkize(ds,nch);
+    ds.sa.chunks=cosmo_chunkize(ds,cfg.nch);
 
-    display(['Subject ' num2str(s_idx) ' of ' num2str(cfg.n) '.']);
+    fprintf(['Subject ' num2str(s_idx) ' of ' num2str(cfg.n) '.']);
 
     % conduct decoding analysis at every time point
-
     for tp=1:max(ds.fa.time)% for all time points
 
-        % display(['Subject ' num2str(s_idx) ' of ' num2str(cfg.n) '. Time point ' num2str(tp) ' of ' num2str(max(ds.fa.time)) '.']);
+%         display(['Subject ' num2str(s_idx) ' of ' num2str(cfg.n) '. Time point ' num2str(tp) ' of ' num2str(max(ds.fa.time)) '.']);
 
         ds_tp=cosmo_slice(ds,ismember(ds.fa.time,tp),2);
 
         % do pca
-
         n_feat=length(unique(ds_tp.fa.chan));
         [coeff,x,LATENT,~,x_exp,mu]=pca(ds_tp.samples);
         for ccx=1:length(x_exp)
-            if sum(x_exp(1:ccx))>=99
+            if sum(x_exp(1:ccx))>=cfg.var_threshold*100
                 n_feat=ccx;
                 break
             end
@@ -66,7 +66,7 @@ for s=cfg.subNums % for all subjects
         ds_class.sa.targets(kitchen_logical,1)=2;
 
         % decoding settings
-        args.classifier=@cosmo_classify_lda;
+        args.classifier=cfg.classifier;
         args.partitions=cosmo_nchoosek_partitioner(ds_class,1);
 
         % run decoding
@@ -102,10 +102,10 @@ if cfg.plotting
 
     dec_acc_mean=squeeze(mean(res.dec_acc,1));
 
-    figure();
+    fig=figure();
     plot(res.time, dec_acc_mean(:), 'LineWidth', 2);
-    yline(1/2,'k--', 'LineWidth', 2);
-    text(0.5, 0.5, 'Chance Level', 'Color', 'r', ...
+    yline(1/2,'k--', 'LineWidth', 2, 'Color', 'r');
+    text(0.5, 0.5, 'Chance', 'Color', 'r', ...
         'VerticalAlignment', 'baseline', 'HorizontalAlignment', 'left');
     yline(max(dec_acc_mean), 'k--', ['max ', num2str(max(dec_acc_mean))])
     xline(0,'k', 'LineWidth', 2);
@@ -114,9 +114,7 @@ if cfg.plotting
     set(gca, 'box', 'off');
 
     if cfg.saving
-        output_dir=fullfile('..', 'Plots');
-        filename = fullfile(output_dir, 'decoding_accuracy_reref_w.jpg');
-        saveas(gcf, filename);
+        save_plot(fig, 'decoding_accuracy_reref_w', cfg.figPath);
     end
 end
 end

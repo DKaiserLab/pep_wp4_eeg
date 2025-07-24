@@ -1,5 +1,6 @@
 function d = filterCurrentSubs(d, cfg)
 
+
 % loop through fields
 for iCate = cfg.categories
     iCate = char(iCate);

@@ -13,8 +13,8 @@ analysis_title="individual decoding accuracies" ;
 analysis_color=[104, 138, 189];
 chance_level=1/2;
 
-%figure('position',[1,1,1000,600], 'unit','centimeters');
-figure;
+fig = figure('position',[1,1,1000,600], 'unit','centimeters');
+%fig=figure;
 set(gcf, 'color', [1 1 1]); % white background
 
 % graphic parameters
@@ -50,8 +50,6 @@ set(subplot_title,'FontWeight','bold');
 
 % save
 if cfg.saving
-    output_dir=fullfile('..', 'Plots');
-    filename = fullfile(output_dir, 'decoding_accuracy_individual_reref_w.jpg');
-    saveas(gcf, filename);
+    save_plot(fig, 'decoding_accuracy_individual_reref_w', cfg.figPath);
 end
 end
