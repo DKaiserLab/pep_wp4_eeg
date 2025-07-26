@@ -19,7 +19,7 @@ if istable(mat_in)
     mat_in = table2array(mat_in);
 end
 
-% get goub average
+% get group average
 if cfg.regressOutMean
     % get mean
     groupMean = mean(mat_in, 2, 'omitnan');
@@ -46,6 +46,7 @@ end
 % make RDM
 if cfg.dissimilarity
     mat_out = 1 - mat_out;
+    mat_out(eye(size(mat_out)) == 1) = 0;
     if ~isfield(cfg, 'MinColorValue'); cfg.MinColorValue = 0; end
     if ~isfield(cfg, 'MaxColorValue'); cfg.MaxColorValue = 2; end
 else

@@ -98,7 +98,7 @@ if cfg.plot_rdm == 1
 
     % give title
     fig_name = ['Correlation_', category, '_', cfg.analysis_name, '_layer_', cfg.layer_name, '_', cfg.dnn];
-    title(strrep(fig_name, '_', ' '))
+    title([strrep(fig_name, '_', ' ') ' averaged per subject'])
 
     % saveing figure
     fig_path = fullfile(cfg.figPath, ['exp_', num2str(cfg.exp_num)], cfg.analysis_name, category);

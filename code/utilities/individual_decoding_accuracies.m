@@ -14,7 +14,6 @@ analysis_color=[104, 138, 189];
 chance_level=1/2;
 
 fig = figure('position',[1,1,1000,600], 'unit','centimeters');
-%fig=figure;
 set(gcf, 'color', [1 1 1]); % white background
 
 % graphic parameters
