@@ -16,7 +16,7 @@ for i = 1:length(cfg.categories)
     p_vals_cat = zeros(1, n_timepoints);
     t_vals_cat = zeros(1, n_timepoints);
 
-    % compute t-test for each timepoint
+    % compute t-test for each time point
     for t = 1:n_timepoints
         [~, p, ~, stats] = ttest(d.meanAcc.(cat).pairRep(t,:), cfg.chance_level, 'tail', 'right');
         p_vals_cat(t) = p;
@@ -51,11 +51,7 @@ if cfg.plotting
 
     colors = lines(length(cfg.categories));
     x = d.pairRep.all_time(d.pairRep.included_time);
-
-    %     for i=1:length(cfg.categories)
-    %         cat = cfg.categories{i};
-    %         plot(x, mean(d.meanAcc.(cat).pairRep,2), 'color', colors(i,:), 'LineWidth', 2);
-    %     end
+    
     for i=1:length(cfg.categories)
         
         cat = cfg.categories{i};
@@ -84,7 +80,6 @@ if cfg.plotting
     xlabel('Time (s)');
     ylabel('Mean decoding accuracy');
     legend(h, cfg.categories, 'Location', 'best');
-%     legend({'bathroom','kitchen'}, 'Location', 'best');
     title(sprintf('Mean pairwise decoding accuracy\n with FDR-corrected significant time points'));
 
     % save figure
