@@ -109,7 +109,9 @@ if cfg.plotting
         'VerticalAlignment', 'baseline', 'HorizontalAlignment', 'left');
     yline(max(dec_acc_mean), 'k--', ['max ', num2str(max(dec_acc_mean))])
     xline(0,'k', 'LineWidth', 2);
-    title('decoding');
+    xlabel('Time (s)');
+    ylabel('Decoding accuracy');
+    title('Decoding accuracy');
     set(gcf, 'color', [1 1 1]); % white background
     set(gca, 'box', 'off');
 
