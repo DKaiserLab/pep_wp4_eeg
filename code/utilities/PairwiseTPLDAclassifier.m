@@ -60,24 +60,24 @@ for iSub = 1:length(cfg.subNums)
     ds = cosmo_average_samples(ds);
 
     % time range for decoding
-    time_points = find(ds.a.fdim.values{2, 1} >= decoding_start &...
+    timepoints = find(ds.a.fdim.values{2, 1} >= decoding_start &...
         ds.a.fdim.values{2, 1} <= decoding_end);
 
     %get time info
     res.all_time=timelock.time;
-    res.included_time=time_points;
+    res.included_time=timepoints;
     clear timelock%new
 
     %% Pairwise decoding
     % Initialize RDM
-    rdm = zeros(cfg.nTrials, cfg.nTrials, length(time_points));
-    mean_accuracy = zeros(1, length(time_points));
+    rdm = zeros(cfg.nTrials, cfg.nTrials, length(timepoints));
+    mean_accuracy = zeros(1, length(timepoints));
     disp('')
 
-    for tp=1:length(time_points)%1:max(ds.fa.time)
+    for tp=1:length(timepoints)%1:max(ds.fa.time)
 
         % select time point
-        tp_idx = time_points(tp);
+        tp_idx = timepoints(tp);
         ds_tp=cosmo_slice(ds, ismember(ds.fa.time,tp_idx),2);
 
         if cfg.pca

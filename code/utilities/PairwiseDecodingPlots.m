@@ -10,7 +10,7 @@ if ~isfield(cfg, 'bar'); cfg.bar = false;end
 %     'results_RDM_of_pairwise_decoding_reref_pca.mat');
 % load(fileName);
 
-% Get subjects and timepoints
+% Get subjects and time points
 fns = fieldnames(res);
 subjects = fns(3:end);
 timepoints = res.included_time;
@@ -77,7 +77,7 @@ if cfg.bar
     ylabel('accuracy');
 
     % set(gca, 'linewidth', 2);
-    title({'Mean pairwise decoding results across timepoints', 'with standard error of the mean'});
+    title({'Mean pairwise decoding results across time points', 'with standard error of the mean'});
     set(gca, 'box', 'off');
 
     hold off;
@@ -87,7 +87,7 @@ if cfg.plotMatrix
     % take mean across subjects
     mean_all_rdm_data = squeeze(mean(all_rdm_data, 3));
 
-    fig = figure('position',[1,1,1000,600], 'unit','centimeters');;
+    fig = figure('position',[1,1,1000,600], 'unit','centimeters');
     % tiledlayout(4, 4);
     title('Mean pairwise decoding accuracy per timepoint');
 
@@ -117,7 +117,7 @@ if cfg.plotMatrix
 
     imagesc(corrtps, [-0.7, 0.7])
     colorbar;
-    title('inter-timepoint correlation');
+    title('Inter-timepoint correlation');
     sgtitle('Mean decoding accuracy', 'FontSize', 18);
 
     if cfg.saving
@@ -231,18 +231,18 @@ for i=1:length(cfg.categories)
 end
 
 xlim([min(x)-min(x)-0.01, max(x)+0.01])
-xlabel('time');
-ylabel('mean-accuracy');
+xlabel('Time (s)');
+ylabel('Decoding accuracy');
 
 % Mark stimulus onset and chance
 yline(0.5, '--');
 xline(0, '--k');  
 
 legend('bathroom', 'kitchen');
-title('pairwise decoding mean accuracy');
+title('Mean pairwise decoding accuracy');
 
 if cfg.saving
-    save_plot(fig, 'pairwise-decoding-mean-acc', cfg.figPath)
+    save_plot(fig, 'mean-pairwise-decoding-acc', cfg.figPath)
 end
 
 % with error
@@ -257,7 +257,7 @@ for i=1:length(cfg.categories)
     upper = mean_acc + sem;
     lower = mean_acc - sem;
 
-    fill([x, fliplr(x)], ... % timeseries(timepoints)
+    fill([x, fliplr(x)], ...
         [upper, fliplr(lower)], colors(i, :), ...
         'EdgeColor', 'none', 'FaceAlpha', 0.3);
     %hold on;
@@ -265,17 +265,17 @@ for i=1:length(cfg.categories)
 end
 
 xlim([min(x)-min(x)-0.01, max(x)+0.01])
-xlabel('time');
-ylabel('mean-accuracy');
+xlabel('Time (s)');
+ylabel('Mean decoding accuracy');
 % Mark stimulus onset and chance
 yline(0.5, '--');
 xline(0, '--k');  
 
 legend(h, cfg.categories);
-title('pairwise decoding mean accuracy');
+title('Mean pairwise decoding accuracy');
 
 if cfg.saving
-    save_plot(fig, 'pairwise-decoding-mean-acc-sem', cfg.figPath)
+    save_plot(fig, 'mean-pairwise-decoding-acc-sem', cfg.figPath)
 end
 
 end 

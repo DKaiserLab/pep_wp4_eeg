@@ -17,7 +17,7 @@ for cate_num = 1:numel(cfg.categories)
     meanAcc = nan(length(d.pairRep.included_time), cfg.n);
 
     % get RDM of ISC type and category
-    % loop through timepoints
+    % loop through time points
     for tp=1:ntimepoints
 
         % preallocate RDM matrix
@@ -65,7 +65,7 @@ for cate_num = 1:numel(cfg.categories)
         d.ISC.medianISC_SE.(category).pairRep(tp) = seISC;
         d.meanAcc.(category).pairRep = meanAcc;
 
-    end % timepoint
+    end % time point
 end % category
 
 %% plotting
@@ -76,8 +76,9 @@ if cfg.plotting
     set(0, 'DefaultAxesFontSize', cfg.FontSize);
     set(0, 'DefaultTextFontName', cfg.FontName);
     set(0, 'DefaultAxesFontName', cfg.FontName);
+    
     c = lines(numel(cfg.categories));
-    x = 1:ntimepoints;
+    x = d.pairRep.all_time(d.pairRep.included_time);
 
     fig=figure;
     hold on;
@@ -99,19 +100,15 @@ if cfg.plotting
 
     set(gca, 'box', 'off');
     yline(0, '--', 'LineWidth', 1.5);
-    xlabel('time');
-    ylabel('median ISC');
+    xlabel('Time (s)');
+    ylabel('Median ISC');
     xlim([min(x)-min(x)-0.01, max(x)+0.01])
-    xticks([1, 10:10:60]);
-    xticklabels(cfg.all_timepoints(cfg.timepoints([1, 10:10:60])));
     xline(0, '--k');  % Mark stimulus onset
     title('ISC of representation');
-    %     xticks(1:length(cfg.timepoints));
-    %     xticklabels(cfg.all_timepoints(cfg.timepoints));
     legend(h, cfg.categories);
 
     if cfg.saving
-        save_plot(fig, 'ISC of Representation', cfg.figPath);
+        save_plot(fig, 'ISCofRepresentation', cfg.figPath);
     end
 
 
@@ -133,12 +130,12 @@ if cfg.plotting
     xline(0, '--k');  % Mark stimulus onset
     yline(0.5, '--k');  % Mark cahnce level
     xlabel('Time (s)');
-    ylabel('Accuracy');
-    legend(b, {'Bathroom', 'Kitchen'})
-    title('Mean pairwise decoding');
+    ylabel('Mean decoding accuracy');
+    legend(b, {'bathroom', 'kitchen'})
+    title('Mean pairwise decoding accuracy');
 
     if cfg.saving
-        save_plot(fig, 'Mean-pairwise-decoding', cfg.figPath);
+        save_plot(fig, 'mean-pairwise-decoding-acc', cfg.figPath);
     end
 
 end
