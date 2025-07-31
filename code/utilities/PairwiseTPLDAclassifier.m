@@ -4,6 +4,8 @@ function [res, cfg] = PairwiseTPLDAclassifier(cfg)
 if ~isfield(cfg, 'var_threshold'); cfg.var_threshold = 0.99;end
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
 if ~isfield(cfg, 'pca'); cfg.pca = false; end
+if ~isfield(cfg, 'decoding_start'); cfg.decoding_start = 0; end
+if ~isfield(cfg, 'decoding_end'); cfg.decoding_end = 0.3; end
 if ~isfield(cfg, 'makeBetweenComparison'); cfg.makeBetweenComparison = false; end
 makeBetweenComparison = cfg.makeBetweenComparison;
 % if ~isfield(cfg, 'nTrials2average'); cfg.nTrials2average = 2; end
@@ -11,10 +13,6 @@ makeBetweenComparison = cfg.makeBetweenComparison;
 %     error('nTrials2average must be 1 or a even number')
 % end 
 % if ~isfield(cfg, 'nBlocks'); cfg.nBlocks = 20; end
-
-% define decoding time window
-decoding_start = 0;
-decoding_end = 0.3;
 
 % Define classifiers
 classifier = @cosmo_classify_lda;
@@ -36,7 +34,7 @@ for iSub = 1:length(cfg.subNums)
     if exist('res', 'var')
         if isfield(res, subID2)
             disp(['RDM for ', subID, ' already exists']);
-            continue
+            %continue
         end
     end
 
@@ -49,19 +47,27 @@ for iSub = 1:length(cfg.subNums)
     %convert to cosmo
     ds=cosmo_meeg_dataset(timelock);
 
-    % define chunks
-%     nch=cfg.nBlocks/cfg.nTrials2average; % is based on many repetitions we have and over how many trials we average
-    nch = 20;
-    ds.sa.chunks=(1:length(ds.sa.trialinfo))';
-    ds.sa.targets=ds.sa.trialinfo;
-    ds.sa.chunks=cosmo_chunkize(ds, nch);
+    % check if data set is complete
+    if height(ds.samples) == cfg.nTrials*cfg.nBlocks
+
+        % define chunks
+        %     nch=cfg.nBlocks/cfg.nTrials2average; % is based on many repetitions we have and over how many trials we average
+        nch = 20;
+        ds.sa.chunks=(1:length(ds.sa.trialinfo))';
+        ds.sa.targets=ds.sa.trialinfo;
+        ds.sa.chunks=cosmo_chunkize(ds, nch);
+
+    else
+        warning(['Subject: ', num2str(cfg.subNums(iSub)), ' has incomplete dataset'])
+        ds = makeChunkForIncompleteDS(ds, cfg);
+    end
 
     % averaging trials
-    ds = cosmo_average_samples(ds);
+    %ds = cosmo_average_samples(ds);
 
     % time range for decoding
-    timepoints = find(ds.a.fdim.values{2, 1} >= decoding_start &...
-        ds.a.fdim.values{2, 1} <= decoding_end);
+    timepoints = find(ds.a.fdim.values{2, 1} >= cfg.decoding_start &...
+        ds.a.fdim.values{2, 1} <= cfg.decoding_end);
 
     %get time info
     res.all_time=timelock.time;
