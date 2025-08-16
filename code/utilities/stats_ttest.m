@@ -7,6 +7,7 @@ if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
 n_timepoints = size(d.pairRep.included_time, 2);
 p_val = struct();
 t_stat = struct();
+is_significant = struct();
 p_val_fdr = struct();
 
 for i = 1:length(cfg.categories)
@@ -18,18 +19,18 @@ for i = 1:length(cfg.categories)
 
     % compute t-test for each time point
     for t = 1:n_timepoints
-        [~, p, ~, stats] = ttest(d.meanAcc.(cat).pairRep(t,:), cfg.chance_level, 'tail', 'right');
+        [~, p, ~, stats] = ttest(d.meanAcc.(cat)(t,:), cfg.chance_level, 'tail', 'right');
         p_vals_cat(t) = p;
         t_vals_cat(t) = stats.tstat;
     end
 
     % FDR
-    p_vals_cat_fdr = fdr_bh(p_vals_cat);
+    [is_significant.(cat), ~, ~, adj_p] = fdr_bh(p_vals_cat, 0.050);
 
     % save
     p_val.(cat) = p_vals_cat;
     t_stat.(cat) = t_vals_cat;
-    p_val_fdr.(cat) = p_vals_cat_fdr;
+    p_val_fdr.(cat) = adj_p;
 
 end
 
@@ -49,14 +50,18 @@ if cfg.plotting
     set(0, 'DefaultAxesFontName', cfg.FontName);
     set(gcf, 'color', [1 1 1]);
 
+    % preallocate
+    h = gobjects(1, length(cfg.categories));
+
     colors = lines(length(cfg.categories));
     x = d.pairRep.all_time(d.pairRep.included_time);
-    
+    y_min = min([mean(d.meanAcc.kitchen,2); mean(d.meanAcc.bathroom,2)]) - 0.002; % position to mark significant time points
+
     for i=1:length(cfg.categories)
         
         cat = cfg.categories{i};
-        sem = std(d.meanAcc.(cat).pairRep, 0, 2)' ./ sqrt(cfg.n);
-        mean_acc = mean(d.meanAcc.(cat).pairRep,2)';
+        sem = std(d.meanAcc.(cat), 0, 2)' ./ sqrt(cfg.n);
+        mean_acc = mean(d.meanAcc.(cat),2)';
         upper = mean_acc + sem;
         lower = mean_acc - sem;
 
@@ -65,12 +70,9 @@ if cfg.plotting
             'EdgeColor', 'none', 'FaceAlpha', 0.3);
         h(i) = plot(x, mean_acc, 'Color', colors(i, :), 'LineWidth', 2);
 
+        % mark significant time points
+        plot(x(is_significant.(cat)), repmat(y_min-0.002*strcmp(cat, 'bathroom'),1,sum(is_significant.(cat))), '*', 'Color', colors(i, :), 'MarkerSize', 3);
     end
-
-    % mark significant time points
-    y_min = min([mean(d.meanAcc.kitchen.pairRep,2); mean(d.meanAcc.bathroom.pairRep,2)]) - 0.002; % etwas unter Minimalwert
-    plot(x(p_val_fdr.kitchen), repmat(y_min,1,sum(p_val_fdr.kitchen)), 'b*', 'MarkerSize', 3);
-    plot(x(p_val_fdr.bathroom), repmat(y_min-0.002,1,sum(p_val_fdr.bathroom)), 'r*', 'MarkerSize', 3);
 
     xlim([min(x)-min(x)-0.01, max(x)+0.01])
     xline(0, '--');
