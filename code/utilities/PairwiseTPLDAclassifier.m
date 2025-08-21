@@ -1,4 +1,4 @@
-function [res, cfg] = PairwiseTPLDAclassifier(cfg)
+function [res, meanAcc, cfg] = PairwiseTPLDAclassifier(cfg)
 
 % evaluate input
 if ~isfield(cfg, 'var_threshold'); cfg.var_threshold = 0.99;end
@@ -11,7 +11,7 @@ makeBetweenComparison = cfg.makeBetweenComparison;
 % if ~isfield(cfg, 'nTrials2average'); cfg.nTrials2average = 2; end
 % if cfg.nTrials2average ~= 1 && mod(cfg.nTrials2average, 2) ~= 0
 %     error('nTrials2average must be 1 or a even number')
-% end 
+% end
 % if ~isfield(cfg, 'nBlocks'); cfg.nBlocks = 20; end
 
 % Define classifiers
@@ -34,7 +34,7 @@ for iSub = 1:length(cfg.subNums)
     if exist('res', 'var')
         if isfield(res, subID2)
             disp(['RDM for ', subID, ' already exists']);
-            %continue
+            continue
         end
     end
 
@@ -138,9 +138,40 @@ for iSub = 1:length(cfg.subNums)
     end
 
     % Save the RDM
-    res.(subID2).rdm = rdm; 
+    res.(subID2).rdm = rdm;
     res.(subID2).mean_accuracy = mean_accuracy;
 end
+
+for cate_num = 1:numel(cfg.categories)
+    category = char(cfg.categories{cate_num});
+
+    % preallocate
+    meanAcc_temp = nan(length(res.included_time), cfg.n);
+
+    for tp=1:length(res.included_time)
+        for iSub = 1:length(cfg.subNums)
+            subID = sprintf('sub-%0.3d', cfg.subNums(iSub));
+            subID2 = strrep(subID, '-', '');
+
+            % make a matrix with vectorized RDMs
+            rdm = squeeze(res.(subID2).rdm(:,:,tp));
+            rdm(eye(size(rdm)) == 1) = 0;
+
+            % filter for category
+            if strcmp(category, cfg.categories{1})
+                rdm = rdm(1:cfg.nTrials/2, 1:cfg.nTrials/2);
+            else
+                rdm = rdm(cfg.nTrials/2 + 1:end, cfg.nTrials/2 + 1:end);
+            end
+
+            meanAcc_temp(tp, iSub) = mean(squareform(rdm), 'omitnan');
+
+        end
+        meanAcc.(category) = meanAcc_temp;
+    end
+end
+
+
 
 % save results
 outputFolder = fullfile(cfg.outputPath, 'group_level', 'RDM');

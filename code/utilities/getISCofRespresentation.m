@@ -40,7 +40,6 @@ for cate_num = 1:numel(cfg.categories)
             end
 
             RDMmat(:, iSub) = squareform(rdm);
-            meanAcc(tp, iSub) = mean(squareform(rdm), 'omitnan');
 
         end
 
@@ -63,7 +62,6 @@ for cate_num = 1:numel(cfg.categories)
         d.ISC.([category,'_RDM']).pairRep(tp).name = (num2str(tp));
         d.ISC.medianISC.(category).pairRep(tp) = medianISC;
         d.ISC.medianISC_SE.(category).pairRep(tp) = seISC;
-        d.meanAcc.(category).pairRep = meanAcc;
 
     end % time point
 end % category
@@ -109,33 +107,6 @@ if cfg.plotting
 
     if cfg.saving
         save_plot(fig, 'ISCofRepresentation', cfg.figPath);
-    end
-
-
-    %% mean accuracy plot (pairwise decoding)
-    fig = figure;
-
-    % get group stats
-    x = d.pairRep.all_time(d.pairRep.included_time);
-    y1 = mean(d.meanAcc.bathroom.pairRep, 2);
-    y2 = mean(d.meanAcc.kitchen.pairRep, 2);
-    e1 = std(d.meanAcc.bathroom.pairRep, [], 2)/sqrt(size(d.meanAcc.bathroom.pairRep, 2));
-    e2 = std(d.meanAcc.kitchen.pairRep, [], 2)/sqrt(size(d.meanAcc.kitchen.pairRep, 2));
-
-    % plot
-    b(1) = boundedline(x, y1, e1, 'color', c(1, :), 'alpha', 'LineWidth', 2);
-    b(2) = boundedline(x, y2, e2,'color', c(2, :), 'alpha', 'LineWidth', 2);
-
-    xlim([min(x)-min(x)-0.01, max(x)+0.01])
-    xline(0, '--k');  % Mark stimulus onset
-    yline(0.5, '--k');  % Mark cahnce level
-    xlabel('Time (s)');
-    ylabel('Mean decoding accuracy');
-    legend(b, {'bathroom', 'kitchen'})
-    title('Mean pairwise decoding accuracy');
-
-    if cfg.saving
-        save_plot(fig, 'mean-pairwise-decoding-acc', cfg.figPath);
     end
 
 end
