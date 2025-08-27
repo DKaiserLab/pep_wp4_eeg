@@ -1,6 +1,6 @@
 function d = getTimeresolvedISCofRespresentation(cfg, d)
 
-cfg.plotting = false;
+cfg.plotting = true;
 cfg.ISC_types = {'pairRep'};
 
 % loop through ISC types
@@ -71,44 +71,47 @@ for ISC_type = cfg.ISC_types
 
 
     end % category
+    if cfg.plotting
+        % plot pairwise decoding
+        if strcmp(cfg.ISC_type, 'pairRep')
+            figure
+            % get group stats
+            x = d.pairRep.all_time(d.pairRep.included_time);
+            y1 = mean(d.meanAcc.bathroom.(cfg.ISC_type), 2);
+            y2 = mean(d.meanAcc.kitchen.(cfg.ISC_type), 2);
+            e1 = std(d.meanAcc.bathroom.(cfg.ISC_type), [], 2)/sqrt(size(d.meanAcc.bathroom.(cfg.ISC_type), 2));
+            e2 = std(d.meanAcc.kitchen.(cfg.ISC_type), [], 2)/sqrt(size(d.meanAcc.kitchen.(cfg.ISC_type), 2));
 
-    % plot pairwise decoding 
-    if strcmp(cfg.ISC_type, 'pairRep')
+            % plot
+            b(1) = boundedline(x, y1, e1, 'cmap', [1, 0, 0], 'alpha');
+            b(2) = boundedline(x, y2, e2,'cmap', [0, 0, 1], 'alpha');
+
+            xlim([min(x)-min(x)-0.01, max(x)+0.01])
+            xline(0, '--k');  % Mark stimulus onset
+            yline(0.5, '--k');  % Mark cahnce level
+            xlabel('Time (s)');
+            ylabel('Accuracy');
+            legend(b, {'Bathroom', 'Kitchen'})
+            title('Mean pairwise decoding');
+        end
+
+        % plot median ISC
         figure
-        % get group stats
-        x = d.pairRep.included_time;
-        y1 = mean(d.meanAcc.bathroom.(cfg.ISC_type), 2);
-        y2 = mean(d.meanAcc.kitchen.(cfg.ISC_type), 2);
-        e1 = std(d.meanAcc.bathroom.(cfg.ISC_type), [], 2)/sqrt(size(d.meanAcc.bathroom.(cfg.ISC_type), 2));
-        e2 = std(d.meanAcc.kitchen.(cfg.ISC_type), [], 2)/sqrt(size(d.meanAcc.kitchen.(cfg.ISC_type), 2));
+        hold on
+        x = d.pairRep.all_time(d.pairRep.included_time);
+        y1 = d.medianISC.bathroom.(cfg.ISC_type);
+        y2 = d.medianISC.kitchen.(cfg.ISC_type);
 
-        % plot
-        b(1) = boundedline(x, y1, e1, 'cmap', [1, 0, 0], 'alpha');
-        b(2) = boundedline(x, y2, e2,'cmap', [0, 0, 1], 'alpha');
+        p(1) = plot(x, y1, 'r');
+        p(2) = plot(x, y2, 'b');
+        xlim([min(x)-min(x)-0.01, max(x)+0.01])
         xline(0, '--k');  % Mark stimulus onset
-        yline(0.5, '--k');  % Mark cahnce level
+        yline(0, '--k');  % Mark zero
         xlabel('Time (s)');
-        ylabel('Accuracy');
-        legend(b, {'Bathroom', 'Kitchen'})
+        ylabel('Median ISC');
+        legend(p, {'Bathroom', 'Kitchen'})
         title('Mean pairwise decoding');
     end
-
-    % plot median ISC
-    figure
-    hold on
-    x = d.pairRep.included_time;
-    y1 = d.medianISC.bathroom.(cfg.ISC_type);
-    y2 = d.medianISC.kitchen.(cfg.ISC_type);
-
-    p(1) = plot(x, y1, 'r');
-    p(2) = plot(x, y2, 'b');
-    xline(0, '--k');  % Mark stimulus onset
-    yline(0, '--k');  % Mark zero
-    xlabel('Time (s)');
-    ylabel('Median ISC');
-    legend(p, {'Bathroom', 'Kitchen'})
-    title('Mean pairwise decoding');
-
 end % isc type
 
 end
