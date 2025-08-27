@@ -5,7 +5,7 @@ if ~isfield(cfg, 'RDM_of_DNNS'); cfg.RDM_of_DNNS = 1; end
 if ~isfield(cfg, 'layer_type'); cfg.layer_type = 'late';end
 if ~isfield(cfg, 'dnn'); cfg.dnn = 'vgg16_imagenet';end
 if ~isfield(cfg, 'categories');  cfg.categories = {'kitchen', 'bathroom'};end
-if ~isfield(cfg, 'analysis_names');  cfg.analysis_names = {'typical', 'control', 'photo'};end
+if ~isfield(cfg, 'analysis_names');  cfg.analysis_names = {'typical', 'control', 'photos'};end
 cfg.regressOutMean = false;
 
 % load network
@@ -39,22 +39,20 @@ for layer=1:length(cfg.loi)
 
             % if feature activations exist load them
             if exist(file_name, 'file')
-                load(file_name)
+                load(file_name);
 
-                % replace by filtered struct with only subjects that are included
-                [cfg, dnn_features] = filter_existing_images(cfg, dnn_features);
+                if ismember(cfg.analysis_name, {'typical', 'control', 'photos'})
+                    % replace by filtered struct with only subjects that are included
+                    [cfg, dnn_features] = filter_existing_images(cfg, dnn_features);
+                end
 
             else
                 dnn_features = struct;
-                %                     for I=1:numel(images.(cfg.analysis_name).(category).image_names)
-                %                         dnn_features.all_net_act(I).image_name = [];
-                %                         dnn_features.all_net_act(I).net_act = [];
-                %                     end
 
                 % calculate and store activations of DNN for each image
                 [d, dnn_features] = images_activations(cfg, d, images, dnn_features, net, layer_name, category);
             end
-          
+
             %show progress
             disp(['analysis ', cfg.analysis_name,' - layer #',num2str(layer), ' - category: ', category])
 
@@ -63,8 +61,8 @@ for layer=1:length(cfg.loi)
 
             if cfg.RDM_of_DNNS == 1
                 % get RDMs for all images and for subject averaged images
-                %[cfg, dnn_features] = filter_images(cfg, dnn_features);
-                d = make_RDM_for_DNNs(d, cfg, category);  
+                [cfg, dnn_features] = filter_existing_images(cfg, dnn_features);
+                d = make_RDM_for_DNNs(d, cfg, category);
             end
             
         end % analysis, added
