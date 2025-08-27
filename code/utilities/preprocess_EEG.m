@@ -123,10 +123,10 @@ for s=cfg.subNums% for each subject
 
     %% transform to "timelocked" data and save the output
     cfg_temp=[];
-    cfg_temp.outputfile = fullfile(output_path, ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w_test']);
+    cfg_temp.outputfile = fullfile(output_path, ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w']);
     cfg_temp.keeptrials='yes';
     timelock = ft_timelockanalysis(cfg_temp, data);
-    save(fullfile(output_path, ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w_test']),'timelock');
+    save(fullfile(output_path, ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w']),'timelock');
     
     % if you want: display the data
     %ft_databrowser(cfg,data);
