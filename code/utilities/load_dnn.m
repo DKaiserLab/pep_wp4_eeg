@@ -30,6 +30,8 @@ if contains(cfg.dnn,'vgg')
         end
     elseif strcmp(cfg.layer_type,'all')
         cfg.loi = 1:41;
+    elseif strcmp(cfg.layer_type,'early_mid')
+        cfg.loi = [4,21];
     end
 
 else
