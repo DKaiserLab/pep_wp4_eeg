@@ -26,6 +26,12 @@ if nargin < 4 % check how many input var
 
 end
 
+if isstruct(all_net_act)
+    all_img_names = all_net_act.image_name;
+    all_net_act = all_net_act.net_act;
+end
+
+
 % check if table
 if istable(all_net_act)
     % get images names
@@ -60,111 +66,66 @@ d.DNN.(cfg.dnn).(cfg.analysis_name).(category).all_images(cfg.layer).RDM = mat_o
 
 
 %% average for on subject level
-mean_r = zeros(cfg.n,cfg.n);
-for row = 1:cfg.n
-    sub1 = cfg.subNums(row);
+if ~isequal(cfg.subNums, cfg.subNums_included)
+    missing_activations = setdiff(cfg.subNums, cfg.subNums_included);
+    cfg.subNums = cfg.subNums_included;
+    cfg.n = length(cfg.subNums);
 
-    for col = 1:cfg.n
-        sub2 = cfg.subNums(col);
-
-        sub1_indices = contains(all_img_names, sprintf('%0.3d', sub1));
-        sub2_indices = contains(all_img_names, sprintf('%0.3d', sub2));
-        cell_indices = (sub1_indices' & sub2_indices);
-        mean_r(row,col) = mean(mean(mat_out(cell_indices)));
-
-    end
+    warning(['Missing feature activations for ', num2str(missing_activations)])
 end
+if ismember(cfg.analysis_name, {'typical', 'control', 'photos'})
+    mean_r = zeros(cfg.n,cfg.n);
+    for row = 1:cfg.n
+        sub1 = cfg.subNums(row);
 
+        for col = 1:cfg.n
+            sub2 = cfg.subNums(col);
 
-if cfg.plot_rdm == 1
-    % load colormap
-    colormaps = load('white_zero_colormap.mat');
+            sub1_indices = contains(all_img_names, sprintf('%0.3d', sub1));
+            sub2_indices = contains(all_img_names, sprintf('%0.3d', sub2));
+            cell_indices = (sub1_indices' & sub2_indices);
+            mean_r(row,col) = mean(mean(mat_out(cell_indices)));
 
-    % make RDM
-    if cfg.dissimilarity
-        if ~isfield(cfg, 'MinColorValue'); cfg.MinColorValue = 0; end
-        if ~isfield(cfg, 'MaxColorValue'); cfg.MaxColorValue = 2; end
-    else
-        if ~isfield(cfg, 'MinColorValue'); cfg.MinColorValue = -1; end
-        if ~isfield(cfg, 'MaxColorValue'); cfg.MaxColorValue = 1; end
+        end
     end
 
-    % plot
-    fig = figure;
-    deoras_heatmap(mean_r, [], [], [],...
-        'Colormap', colormaps.white_zero, 'Colorbar', true,...
-        'MinColorValue', cfg.MinColorValue, 'MaxColorValue', cfg.MaxColorValue,...
-        'TickAngle', 45, 'ShowAllTicks', 0);
 
-    % give title
-    fig_name = ['Correlation_', category, '_', cfg.analysis_name, '_layer_', cfg.layer_name, '_', cfg.dnn];
-    title([strrep(fig_name, '_', ' ') ' averaged per subject'])
+    if cfg.plot_rdm == 1
+        % load colormap
+        colormaps = load('white_zero_colormap.mat');
 
-    % saveing figure
-    fig_path = fullfile(cfg.figPath, ['exp_', num2str(cfg.exp_num)], cfg.analysis_name, category);
-    if ~exist(fig_path, 'dir')
-        mkdir(fig_path);
+        % make RDM
+        if cfg.dissimilarity
+            if ~isfield(cfg, 'MinColorValue'); cfg.MinColorValue = 0; end
+            if ~isfield(cfg, 'MaxColorValue'); cfg.MaxColorValue = 2; end
+        else
+            if ~isfield(cfg, 'MinColorValue'); cfg.MinColorValue = -1; end
+            if ~isfield(cfg, 'MaxColorValue'); cfg.MaxColorValue = 1; end
+        end
+
+        % plot
+        fig = figure;
+        deoras_heatmap(mean_r, [], [], [],...
+            'Colormap', colormaps.white_zero, 'Colorbar', true,...
+            'MinColorValue', cfg.MinColorValue, 'MaxColorValue', cfg.MaxColorValue,...
+            'TickAngle', 45, 'ShowAllTicks', 0);
+
+        % give title
+        fig_name = ['Correlation_', category, '_', cfg.analysis_name, '_layer_', cfg.layer_name, '_', cfg.dnn];
+        title([strrep(fig_name, '_', ' ') ' averaged per subject'])
+
+        % saveing figure
+        fig_path = fullfile(cfg.figPath, ['exp_', num2str(cfg.exp_num)], cfg.analysis_name, category);
+        if ~exist(fig_path, 'dir')
+            mkdir(fig_path);
+        end
+        save_plot(fig, fig_name, fig_path)
     end
-    save_plot(fig, fig_name, fig_path)
+
+    % store RDMs for all image repeats in d
+    d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subject_mean(cfg.layer).name = cfg.layer_name;
+    d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subject_mean(cfg.layer).color = [0, 0, 0];
+    d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subject_mean(cfg.layer).RDM = mean_r;
+    d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subjects(cfg.layer) =  {cfg.subNums};
 end
-
-% store RDMs for all image repeats in d
-d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subject_mean(cfg.layer).name = cfg.layer_name;
-d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subject_mean(cfg.layer).color = [0, 0, 0];
-d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subject_mean(cfg.layer).RDM = mean_r;
-d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subjects(cfg.layer) =  {cfg.subNums};
-
-
-% %% average for on subject level
-% mean_r = zeros(length(cfg.subNums_included),length(cfg.subNums_included));
-% for row = 1:length(cfg.subNums_included)
-%     sub1 = cfg.subNums_included(row);
-% 
-%     for col = 1:length(cfg.subNums_included)
-%         sub2 = cfg.subNums_included(col);
-% 
-%         sub1_indices = contains(all_img_names, sprintf('%0.3d', sub1));
-%         sub2_indices = contains(all_img_names, sprintf('%0.3d', sub2));
-%         cell_indices = (sub1_indices' & sub2_indices);
-%         mean_r(row,col) = mean(mean(mat_out(cell_indices)));
-% 
-%     end
-% end
-% 
-% 
-% if cfg.plot_rdm == 1
-%     % load colormap
-%     colormaps = load('white_zero_colormap.mat');
-% 
-%     % make RDM
-%     if cfg.dissimilarity
-%         if ~isfield(cfg, 'MinColorValue'); cfg.MinColorValue = 0; end
-%         if ~isfield(cfg, 'MaxColorValue'); cfg.MaxColorValue = 2; end
-%     else
-%         if ~isfield(cfg, 'MinColorValue'); cfg.MinColorValue = -1; end
-%         if ~isfield(cfg, 'MaxColorValue'); cfg.MaxColorValue = 1; end
-%     end
-% 
-%     % plot
-%     fig=figure;
-%     deoras_heatmap(mean_r, [], [], [],...
-%         'Colormap', colormaps.white_zero, 'Colorbar', true,...
-%         'MinColorValue', cfg.MinColorValue, 'MaxColorValue', cfg.MaxColorValue,...
-%         'TickAngle', 45, 'ShowAllTicks', 0);
-% 
-%     % give title
-%     fig_name = ['Correlation_', category, '_', cfg.analysis_name, '_layer_', cfg.layer_name, '_', cfg.dnn];
-%     title(strrep(fig_name, '_', ' '))
-% 
-%     % saveing figure
-%     fig_path = fullfile(cfg.figPath, ['exp_', num2str(cfg.exp_num)], cfg.analysis_name, category);
-%     save_plot(fig, fig_name, fig_path)
-% end
-% 
-% % store RDMs for all image repeats in d
-% d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subject_mean(cfg.layer).name = cfg.layer_name;
-% d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subject_mean(cfg.layer).color = [0, 0, 0];
-% d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subject_mean(cfg.layer).RDM = mean_r;
-% d.DNN.(cfg.dnn).(cfg.analysis_name).(category).subjects(cfg.layer) =  {cfg.subNums};
-
 end
