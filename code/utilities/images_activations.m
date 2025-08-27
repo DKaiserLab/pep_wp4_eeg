@@ -6,7 +6,7 @@ for image_name = images.(cfg.analysis_name).(category).image_names
     ix=ix+1;
 
     % check if it already exists and skip is thats the case
-    if exist('dnn_features', 'var')
+    if exist('dnn_features', 'var') % if exist(output_dir, 'var')
         if isfield(dnn_features, 'all_net_act')
             if isfield(dnn_features.all_net_act, 'image_name')
                 if ix <= length({dnn_features.all_net_act.image_name})
@@ -30,8 +30,9 @@ for image_name = images.(cfg.analysis_name).(category).image_names
     %calculate and store activations
     new_net_act = activations(net, img, cfg.layer_name); % compute activation of the current layer
     dnn_features.all_net_act(ix).image_name = char(image_name); % save image-name
-    dnn_features.all_net_act(ix).net_act = new_net_act(:); % and activation for the current layser
+    dnn_features.all_net_act(ix).net_act = new_net_act(:); % and activation for the current layer
 
     d.DNN.(cfg.dnn).(cfg.analysis_name).(category).all_net_act.(layer_name)(ix).image_name = char(image_name);
     d.DNN.(cfg.dnn).(cfg.analysis_name).(category).all_net_act.(layer_name)(ix).net_act = new_net_act(:);
+end
 end

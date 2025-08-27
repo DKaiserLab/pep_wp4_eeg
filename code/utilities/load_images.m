@@ -10,7 +10,7 @@ drawing_image_folder = fullfile(pwd, '..', 'drawings');
 drawing_image_files = dir(fullfile(drawing_image_folder, '*gen*.png'));
 drawing_image_files = struct2table(drawing_image_files);
 
-% get image files for
+% get image files for photos
 photo_image_folder = fullfile(pwd, '..', 'photos');
 photo_image_files = dir(fullfile(photo_image_folder, '*.png'));
 photo_image_files = struct2table(photo_image_files);
