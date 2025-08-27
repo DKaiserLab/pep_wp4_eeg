@@ -59,7 +59,7 @@ for iSub = 1:length(cfg.subNums)
 
     else
         warning(['Subject: ', num2str(cfg.subNums(iSub)), ' has incomplete dataset'])
-        ds = makeChunkForIncompleteDS(ds, cfg);
+        ds = makeChunkForIncompleteDS(ds, cfg, iSub);
     end
 
     % averaging trials

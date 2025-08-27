@@ -1,4 +1,4 @@
-function ds = makeChunkForIncompleteDS(ds, cfg)
+function ds = makeChunkForIncompleteDS(ds, cfg, iSub)
 
 % this checks if the data set is complete and if not takes care of this
 % Note that for every participant with missing data an individual solution
