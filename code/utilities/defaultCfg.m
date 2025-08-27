@@ -24,10 +24,15 @@ if ~isfield(cfg, 'classifier'); cfg.classifier = @cosmo_classify_lda; end
 
 % define paths
 if ~isfield(cfg, 'functionPath'); cfg.functionPath = fullfile(pwd,'utilities');end
-cfg.sourcedataPath = fullfile(pwd, '..','sourcedata');
-cfg.outputPath = fullfile(pwd, '..','derivatives');
-cfg.figPath = fullfile(pwd, '..', 'plots');
-cfg.behPath = fullfile(cfg.sourcedataPath, 'beh');
+if ~isfield(cfg, 'sourcedataPath'); cfg.sourcedataPath = fullfile(pwd, '..','sourcedata');end
+if ~isfield(cfg, 'outputPath'); cfg.outputPath = fullfile(pwd, '..','derivatives');end
+if ~isfield(cfg, 'figPath'); cfg.figPath = fullfile(pwd, '..', 'plots');end
+if ~isfield(cfg, 'behPath'); cfg.behPath = fullfile(cfg.sourcedataPath, 'beh');end
+if ~isfield(cfg, 'stimuliPath'); cfg.stimuliPath = fullfile(pwd, '..', 'stimuli');end
+% cfg.sourcedataPath = fullfile(pwd, '..','sourcedata');
+% cfg.outputPath = fullfile(pwd, '..','derivatives');
+% cfg.figPath = fullfile(pwd, '..', 'plots');
+% cfg.behPath = fullfile(cfg.sourcedataPath, 'beh');
 
 % other standard configurations
 if ~isfield(cfg, 'FontName'); cfg.FontName = 'Helvetica'; end
