@@ -148,7 +148,7 @@ if cfg.plotting && cfg.partial_cor
 
     % saving
     if cfg.saving
-        fig_path = fullfile(cfg.figPath, ['exp_', num2str(cfg.exp_num)], 'compare_roi_RDMs_to_predictor_RDMs');
+        fig_path = fullfile(cfg.figPath, ['exp_', num2str(cfg.exp_num)], 'compare_tp_RDMs_to_predictor_RDMs');
         fig_name = 'Time-resolved-corr-reference-RDMs-with-predictors';
         save_plot(fig, fig_name, fig_path)
     end
