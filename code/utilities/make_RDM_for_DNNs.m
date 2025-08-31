@@ -3,6 +3,7 @@ function d = make_RDM_for_DNNs(d, cfg, category, all_net_act)
 % preparation
 if ~isfield(cfg, 'plot_rdm'); cfg.plot_rdm = true; end
 if ~isfield(cfg, 'dissimilarity'); cfg.dissimilarity = true; end
+if ~isfield(cfg, 'subNums_included'); cfg.subNums_included = cfg.subNums; end
 
 % get lyer name with _ instead of -
 layer_name = strrep(cfg.layer_name, '-', '_');
