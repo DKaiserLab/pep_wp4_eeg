@@ -61,7 +61,9 @@ for layer=1:length(cfg.loi)
 
             if cfg.RDM_of_DNNS == 1
                 % get RDMs for all images and for subject averaged images
-                [cfg, dnn_features] = filter_existing_images(cfg, dnn_features);
+                if ismember(cfg.analysis_name, {'typical', 'control', 'photos'})
+                    [cfg, dnn_features] = filter_existing_images(cfg, dnn_features);
+                end
                 d = make_RDM_for_DNNs(d, cfg, category);
             end
             
