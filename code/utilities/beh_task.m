@@ -67,7 +67,7 @@ p_vals = [p_val.bathroom, p_val.kitchen];
 is_sig = fdr_bh(p_vals, 0.05, 'pdep', 'yes'); % [is_sig, ~, ~, adj_p]
 
 %% binom-test
-% individual category mean accuracy > 0.5
+% individual mean accuracy > 0.5
 % P(X>=k) = 1 - P(X <= k-1) = 1 - binocdf(k-1, n, p)
 p_vals_sub = zeros(1,cfg.n);
 for idx = 1:cfg.n
