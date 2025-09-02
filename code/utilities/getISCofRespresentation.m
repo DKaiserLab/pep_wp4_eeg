@@ -6,17 +6,13 @@ if ~isfield(cfg, 'plot_sem'); cfg.plot_sem = true;end
 cfg.timepoints = d.pairRep.included_time;
 cfg.all_timepoints = d.pairRep.all_time;
 
-% get number of ROI masks
+% get number of time points
 ntimepoints=numel(cfg.timepoints);
 
 % loop through categories
 for cate_num = 1:numel(cfg.categories)
     category = char(cfg.categories{cate_num});
 
-    % preallocate
-    meanAcc = nan(length(d.pairRep.included_time), cfg.n);
-
-    % get RDM of ISC type and category
     % loop through time points
     for tp=1:ntimepoints
 
@@ -33,7 +29,7 @@ for cate_num = 1:numel(cfg.categories)
             rdm(eye(size(rdm)) == 1) = 0;
 
             % filter for category
-            if strcmp(category, cfg.categories{1})
+            if strcmp(category, 'bathroom')
                 rdm = rdm(1:cfg.nTrials/2, 1:cfg.nTrials/2);
             else
                 rdm = rdm(cfg.nTrials/2 + 1:end, cfg.nTrials/2 + 1:end);
@@ -100,7 +96,7 @@ if cfg.plotting
     yline(0, '--', 'LineWidth', 1.5);
     xlabel('Time (s)');
     ylabel('Median ISC');
-    xlim([min(x)-min(x)-0.01, max(x)+0.01])
+    xlim([min(x)-min(x)-0.2, max(x)+0.01])
     xline(0, '--k');  % Mark stimulus onset
     title('ISC of representation');
     legend(h, cfg.categories);
