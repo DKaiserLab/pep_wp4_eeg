@@ -1,4 +1,4 @@
-function d = stats_permutationtest(cfg, d)
+function stats = stats_permutationtest(cfg, d)
 
 % evaluate input
 if ~isfield(cfg, 'RDM_to_partial_out'); cfg.RDM_to_partial_out = {'typical_late', 'control_late'}; end
@@ -16,17 +16,35 @@ if ~isfield(cfg, 'alpha'); cfg.alpha = 0.05; end
 
 cfg.plot_rdm = false;
 cfg.ISC_type = 'pairRep';
+partial = cfg.partial_cor;
 
 n_tp = length(d.(cfg.ISC_type).included_time);
+pos_tp = d.pairRep.included_time(d.pairRep.all_time(d.pairRep.included_time)>=0);
+n_pos_tp = length(pos_tp);
 n_predictors = length(cfg.RDM_to_partial_out);
+n_sub = cfg.n;
+predictors = cfg.RDM_to_partial_out;
+idx = 0;
 
 % init
-d.pvalMat.avg = nan(n_predictors, n_tp);
-d.pvalMat_onesided.avg = nan(n_predictors, n_tp);
-d.permDistributions.all = cell(n_predictors, n_tp);
+pvalMat = struct;
+pvalMat.twosided = struct;
+pvalMat.onesided = struct;
+percBounds = struct;
+sigMat = struct;
+
+rng(1)
 
 % loop tp
 for iTp = 1:n_tp
+    act_tp = d.pairRep.all_time(d.pairRep.included_time(iTp));
+
+    if act_tp < 0
+        % add nan
+        continue;
+    end
+
+    idx = idx + 1;
 
     % init data storage
     perm_corrs_allCats = cell(length(cfg.categories),1);
@@ -34,8 +52,6 @@ for iTp = 1:n_tp
 
     % loop cat
     for cate_num = 1:length(cfg.categories)
-
-        rng(1)
 
         category = char(cfg.categories{cate_num});
 
@@ -50,24 +66,32 @@ for iTp = 1:n_tp
 
         RDM_orig = RDMs(1).RDM; % save original once per timepoint
 
-        % 
+        %
         r_obs = d.resMat.partial_cor.(category)(:, iTp);
         r_obs_allCats{cate_num} = r_obs;
 
         % init data storage
-        perm_corrs = zeros(n_predictors, cfg.n_permutations);
+        perm_corrs = nan(n_predictors, cfg.n_permutations);
+
+
+        if isempty(gcp('nocreate'))
+            parpool(8);
+        end
 
         % create permutations and compute correlations
-        for p = 1:cfg.n_permutations
-            perm_idx = randperm(cfg.n);
+        parfor p = 1:cfg.n_permutations
+            perm_idx = randperm(n_sub);
 
-            perm_RDM = RDM_orig(perm_idx, perm_idx); % permute original, shuffle rows and columns
-            RDMs(1).RDM = perm_RDM;
+            RDMs_local = RDMs;
+            RDMs_local(1).RDM = RDM_orig(perm_idx, perm_idx);
 
-            if cfg.partial_cor
-                [~, rMat_perm, ~] = partial_cor_RDM(cfg, RDMs);
+            %             perm_RDM = RDM_orig(perm_idx, perm_idx); % permute original, shuffle rows and columns
+            %             RDMs(1).RDM = perm_RDM;
+
+            if partial
+                [~, rMat_perm, ~] = partial_cor_RDM(cfg, RDMs_local);
             else
-                [~, rMat_perm, ~] = cor_RDM(RDMs, cfg);
+                [~, rMat_perm, ~] = cor_RDM(RDMs_local, cfg);
             end
 
             perm_corrs(:, p) = rMat_perm(2:end, 1);
@@ -76,64 +100,103 @@ for iTp = 1:n_tp
         perm_corrs_allCats{cate_num} = perm_corrs;
 
         for var = 1:n_predictors
+            if act_tp == d.pairRep.all_time(pos_tp(1)) && var == 1
+                pvalMat.twosided.(category) = nan(n_predictors, n_pos_tp);
+                pvalMat.onesided.(category) = nan(n_predictors, n_pos_tp);
+                permDistributions.(category) = cell(n_predictors, n_pos_tp);
+                percBounds.twosided.(category) = struct;
+                percBounds.twosided.(category).upper = nan(n_predictors, n_pos_tp);
+                percBounds.twosided.(category).lower = nan(n_predictors, n_pos_tp);
+                percBounds.onesided.(category) = struct;
+                percBounds.onesided.(category).upper = nan(n_predictors, n_pos_tp);
+            end
             % save permutations
-            d.permDistributions.(category){var, iTp} = perm_corrs(var, :);
+            permDistributions.(category){var, idx} = perm_corrs(var, :);
             % compute and save p-values
-            d.pvalMat.(category)(var, iTp) = mean(abs(perm_corrs(var,:)) >= abs(r_obs(var))); % two-sided
-            d.pvalMat_onesided.(category)(var, iTp) = mean(perm_corrs(var,:) >= r_obs(var)); % one-sided;
+            pvalMat.twosided.(category)(var, idx) = mean(abs(perm_corrs(var,:)) >= abs(r_obs(var))); % two-sided
+            pvalMat.onesided.(category)(var, idx) = mean(perm_corrs(var,:) >= r_obs(var)); % one-sided;
             % compute and save percentiles
-            d.percBounds.(category).upper(var, iTp) = prctile(perm_corrs(var,:), 100-(cfg.alpha*100/2));
-            d.percBounds.(category).lower(var, iTp) = prctile(perm_corrs(var,:), 0+(cfg.alpha*100/2));
-            d.percBounds_onesided.(category).upper(var, iTp) = prctile(perm_corrs(var,:), 100-cfg.alpha*100);
-            
+            percBounds.twosided.(category).upper(var, idx) = prctile(perm_corrs(var,:), 100-(cfg.alpha*100/2));
+            percBounds.twosided.(category).lower(var, idx) = prctile(perm_corrs(var,:), 0+(cfg.alpha*100/2));
+            percBounds.onesided.(category).upper(var, idx) = prctile(perm_corrs(var,:), 100-cfg.alpha*100);
+
         end
-        
+
     end % category
 
     r_obs_mean = mean(cat(2, r_obs_allCats{:}),2);
 
-    perm_corrs_mean = zeros(n_predictors, cfg.n_permutations);
+    perm_corrs_mean = nan(n_predictors, cfg.n_permutations);
     for p = 1:cfg.n_permutations
         vals_per_cat = cellfun(@(x) x(:,p), perm_corrs_allCats, 'UniformOutput', false);
-        perm_corrs_mean(:,p) = mean(cat(2, vals_per_cat{:}), 2); 
+        perm_corrs_mean(:,p) = mean(cat(2, vals_per_cat{:}), 2);
     end
 
     for var = 1:n_predictors
+
+        if act_tp == d.pairRep.all_time(pos_tp(1)) && var == 1
+            pvalMat.twosided.all = nan(n_predictors, n_pos_tp);
+            pvalMat.onesided.all = nan(n_predictors, n_pos_tp);
+            permDistributions.all = cell(n_predictors, n_pos_tp);
+            percBounds.twosided.all = struct;
+            percBounds.twosided.all.upper = nan(n_predictors, n_pos_tp);
+            percBounds.twosided.all.lower = nan(n_predictors, n_pos_tp);
+            percBounds.onesided.all = struct;
+            percBounds.onesided.all.upper = nan(n_predictors, n_pos_tp);
+        end
+
         % save permutations
-        d.permDistributions.all{var, iTp} = perm_corrs_mean(var,:);
-        
-         % compute and save p-values
-        d.pvalMat.avg(var, iTp) = mean(abs(perm_corrs_mean(var,:)) >= abs(r_obs_mean(var))); % two-sided;
-        d.pvalMat_onesided.avg(var, iTp) = mean(perm_corrs_mean(var,:) >= r_obs_mean(var)); % one-sided
-       
+        permDistributions.all{var, idx} = perm_corrs_mean(var,:);
+
+        % compute and save p-values
+        pvalMat.twosided.all(var, idx) = mean(abs(perm_corrs_mean(var,:)) >= abs(r_obs_mean(var))); % two-sided;
+        pvalMat.onesided.all(var, idx) = mean(perm_corrs_mean(var,:) >= r_obs_mean(var)); % one-sided
+
         % compute and save percentiles
-        d.percBounds.all.upper(var, iTp) = prctile(perm_corrs_mean(var,:), 100-(cfg.alpha*100/2));
-        d.percBounds.all.lower(var, iTp) = prctile(perm_corrs_mean(var,:), 0+(cfg.alpha*100/2));
-        d.percBounds_onesided.all.upper(var, iTp) = prctile(perm_corrs_mean(var,:), 100-cfg.alpha*100);
+        percBounds.twosided.all.upper(var, idx) = prctile(perm_corrs_mean(var,:), 100-(cfg.alpha*100/2));
+        percBounds.twosided.all.lower(var, idx) = prctile(perm_corrs_mean(var,:), 0+(cfg.alpha*100/2));
+        percBounds.onesided.all.upper(var, idx) = prctile(perm_corrs_mean(var,:), 100-cfg.alpha*100);
     end
 
 end % tp
 
+if ~isempty(gcp('nocreate'))
+    delete(gcp('nocreate'));
+end
+
+
+pvalMat.onesided.FDR = struct;
+pvalMat.onesided.FDR.all = nan(n_predictors, n_pos_tp);
+sigMat.FDR = struct;
+sigMat.FDR.all = false(n_predictors, n_pos_tp);
+
 % FDR, separate for each modell
 for i=1:n_predictors
-    pred = cfg.RDM_to_partial_out{i};
-    pvals = d.pvalMat_onesided.avg(i,:);
+    pvals = pvalMat.onesided.all(i,:);
     [is_significant, ~, ~, adj_p] = fdr_bh(pvals, cfg.alpha, 'pdep', 'yes');
-    d.sigMat_FDR.avg.(pred) = is_significant;
-    d.pval_fdr.avg.(pred) = adj_p;
+    sigMat.FDR.all(i,:) = is_significant;
+    pvalMat.onesided.FDR.all(i,:) = adj_p;
 end
 
 % FDR, separate for each modell and category
-for c = 1:numel(cfg.categories)
+for c = 1:length(cfg.categories)
     cat_name = cfg.categories{c};
+    pvalMat.onesided.FDR.(cat_name) = nan(n_predictors, n_pos_tp);
+    sigMat.FDR.(cat_name) = false(n_predictors, n_pos_tp);
     for i=1:n_predictors
-        pred = cfg.RDM_to_partial_out{i};
-        pvals = d.pvalMat_onesided.(cat_name)(i,:);
+%         pred = cfg.RDM_to_partial_out{i};
+        pvals = pvalMat.onesided.(cat_name)(i,:);
         [is_significant, ~, ~, adj_p] = fdr_bh(pvals, cfg.alpha, 'pdep', 'yes');
-        d.sigMat_FDR.(pred).(cat_name) = is_significant;
-        d.pval_fdr.(pred).(cat_name) = adj_p;
+        sigMat.FDR.(cat_name)(i,:) = is_significant;
+        pvalMat.onesided.FDR.(cat_name)(i,:) = adj_p;
     end
 end
 
+stats = struct;
+stats.pvalMat = pvalMat;
+stats.sigMat = sigMat;
+stats.percBounds = percBounds;
+stats.predictors = predictors;
+stats.testedTime = pos_tp;
 
 end
