@@ -4,8 +4,8 @@ function [res, meanAcc, cfg] = PairwiseTPLDAclassifier(cfg)
 if ~isfield(cfg, 'var_threshold'); cfg.var_threshold = 0.99;end
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
 if ~isfield(cfg, 'pca'); cfg.pca = false; end
-if ~isfield(cfg, 'decoding_start'); cfg.decoding_start = 0; end
-if ~isfield(cfg, 'decoding_end'); cfg.decoding_end = 0.3; end
+if ~isfield(cfg, 'decoding_start'); cfg.decoding_start = -0.2; end
+if ~isfield(cfg, 'decoding_end'); cfg.decoding_end = 0.5; end
 if ~isfield(cfg, 'makeBetweenComparison'); cfg.makeBetweenComparison = false; end
 makeBetweenComparison = cfg.makeBetweenComparison;
 % if ~isfield(cfg, 'nTrials2average'); cfg.nTrials2average = 2; end
@@ -32,14 +32,14 @@ for iSub = 1:length(cfg.subNums)
     % check if is part of result structure already
     subID2 = strrep(subID, '-', '');
     if exist('res', 'var')
-        if isfield(res, subID2)
+        if isfield(res, subID2) && size(res.(subID2).rdm, 3) > 60
             disp(['RDM for ', subID, ' already exists']);
             continue
         end
     end
 
     % progress report
-    disp(['Starting pairwise decoding for subject ',  num2str(cfg.subNums(iSub))]);
+    disp(['Starting pairwise decoding for subject ',  subID]);
 
     filepath = fullfile(cfg.outputPath, ['sub-', num2str(cfg.subNums(iSub))], 'eeg', ['PEP_WP4_EEG', num2str(cfg.subNums(iSub)), '_timelock_reref_w', '.mat']);
     load(filepath);
@@ -135,12 +135,12 @@ for iSub = 1:length(cfg.subNums)
         % take mean
         mean_accuracy(tp) = mean(squareform(rdm(:, :, tp)), 'omitnan');
 
-    end
+    end % tp
 
     % Save the RDM
     res.(subID2).rdm = rdm;
     res.(subID2).mean_accuracy = mean_accuracy;
-end
+end % sub
 
 for cate_num = 1:numel(cfg.categories)
     category = char(cfg.categories{cate_num});
