@@ -1,4 +1,4 @@
-function plot_corr_sig(cfg, d, pval)
+function plot_corr_sig(cfg, d, pval, save_name)
 
 if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 6; end
 if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.1, 0.1]; end
@@ -68,7 +68,7 @@ end % category
 
 sgtitle('Time-resolved correlation ISC-RDM with predictors', 'FontSize', 18);
 hold off;
-save_plot(fig, 'corr_sig_pvalFDR_early', cfg.figPath)
+save_plot(fig, ['corr_sig_', save_name], cfg.figPath)
 
 % 
 fig = figure;
@@ -134,6 +134,6 @@ set(gca, 'box', 'off');
 sgtitle('Time-resolved correlation ISC-RDM with predictors', 'FontSize', 18);
 hold off;
 
-save_plot(fig, 'mean_corr_sig_pvalFDR_early', cfg.figPath)
+save_plot(fig, ['mean_corr_sig', save_name], cfg.figPath)
 
 end
