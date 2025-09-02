@@ -65,7 +65,7 @@ for cate_num = 1:numel(cfg.categories)
 
     % plotting
     if cfg.plotting && cfg.partial_cor
-        x = d.(cfg.ISC_type).included_time;
+        x = d.pairRep.all_time(d.pairRep.included_time);
 
         for var = 1:numel(cfg.RDM_to_partial_out)
 
@@ -85,10 +85,8 @@ for cate_num = 1:numel(cfg.categories)
             % plot line
             if strcmp(category, cfg.categories{1}) % bathroom
                 p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '--', 'LineWidth', 1);
-                yline(0, '--')
             else % kitchen
                 p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', ':', 'LineWidth', 1);
-                yline(0, '--')
             end
             legend_labels{plot_counter} = [strrep(cfg.RDM_to_partial_out{var}, '_', '-'), ' ', category];
             plot_counter = plot_counter+1;
@@ -97,7 +95,6 @@ for cate_num = 1:numel(cfg.categories)
 end
 
 if cfg.plotting && cfg.partial_cor
-
     for var = 1:numel(cfg.RDM_to_partial_out)
 
         % smooth data
@@ -142,8 +139,9 @@ if cfg.plotting && cfg.partial_cor
         ylim(cfg.ylim)
     end
 
+    yline(0, '--')
+    xline(0, '--')
     xlabel('time');
-    set(gca, 'XTickLabel', round(d.pairRep.all_time(x([1, 10:10:60])), 2));
     set(gca, 'box', 'off');
 
     % saving
