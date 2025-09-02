@@ -33,7 +33,7 @@ pvalMat.onesided = struct;
 percBounds = struct;
 sigMat = struct;
 
-rng(1)
+% rng(1);
 
 % loop tp
 for iTp = 1:n_tp
@@ -79,8 +79,11 @@ for iTp = 1:n_tp
         end
 
         % create permutations and compute correlations
+        %parfor
         parfor p = 1:cfg.n_permutations
-            perm_idx = randperm(n_sub);
+            s = RandStream('mrg32k3a','Seed', 1 + p);
+
+            perm_idx = randperm(s, n_sub);
 
             RDMs_local = RDMs;
             RDMs_local(1).RDM = RDM_orig(perm_idx, perm_idx);
@@ -97,10 +100,15 @@ for iTp = 1:n_tp
             perm_corrs(:, p) = rMat_perm(2:end, 1);
         end
 
+        nUnique = size(unique(perm_corrs','rows'),1);
+        fprintf('Permutations: %d requested, %d unique\n', cfg.n_permutations, nUnique);
+        fprintf('Varianz Perm corr (mean across preds): %g\n', mean(var(perm_corrs,0,2)));
+
+
         perm_corrs_allCats{cate_num} = perm_corrs;
 
-        for var = 1:n_predictors
-            if act_tp == d.pairRep.all_time(pos_tp(1)) && var == 1
+        for v = 1:n_predictors
+            if act_tp == d.pairRep.all_time(pos_tp(1)) && v == 1
                 pvalMat.twosided.(category) = nan(n_predictors, n_pos_tp);
                 pvalMat.onesided.(category) = nan(n_predictors, n_pos_tp);
                 permDistributions.(category) = cell(n_predictors, n_pos_tp);
@@ -111,14 +119,14 @@ for iTp = 1:n_tp
                 percBounds.onesided.(category).upper = nan(n_predictors, n_pos_tp);
             end
             % save permutations
-            permDistributions.(category){var, idx} = perm_corrs(var, :);
+            permDistributions.(category){v, idx} = perm_corrs(v, :);
             % compute and save p-values
-            pvalMat.twosided.(category)(var, idx) = mean(abs(perm_corrs(var,:)) >= abs(r_obs(var))); % two-sided
-            pvalMat.onesided.(category)(var, idx) = mean(perm_corrs(var,:) >= r_obs(var)); % one-sided;
+            pvalMat.twosided.(category)(v, idx) = mean(abs(perm_corrs(v,:)) >= abs(r_obs(v))); % two-sided
+            pvalMat.onesided.(category)(v, idx) = mean(perm_corrs(v,:) >= r_obs(v)); % one-sided;
             % compute and save percentiles
-            percBounds.twosided.(category).upper(var, idx) = prctile(perm_corrs(var,:), 100-(cfg.alpha*100/2));
-            percBounds.twosided.(category).lower(var, idx) = prctile(perm_corrs(var,:), 0+(cfg.alpha*100/2));
-            percBounds.onesided.(category).upper(var, idx) = prctile(perm_corrs(var,:), 100-cfg.alpha*100);
+            percBounds.twosided.(category).upper(v, idx) = prctile(perm_corrs(v,:), 100-(cfg.alpha*100/2));
+            percBounds.twosided.(category).lower(v, idx) = prctile(perm_corrs(v,:), 0+(cfg.alpha*100/2));
+            percBounds.onesided.(category).upper(v, idx) = prctile(perm_corrs(v,:), 100-cfg.alpha*100);
 
         end
 
@@ -132,9 +140,9 @@ for iTp = 1:n_tp
         perm_corrs_mean(:,p) = mean(cat(2, vals_per_cat{:}), 2);
     end
 
-    for var = 1:n_predictors
+    for v = 1:n_predictors
 
-        if act_tp == d.pairRep.all_time(pos_tp(1)) && var == 1
+        if act_tp == d.pairRep.all_time(pos_tp(1)) && v == 1
             pvalMat.twosided.all = nan(n_predictors, n_pos_tp);
             pvalMat.onesided.all = nan(n_predictors, n_pos_tp);
             permDistributions.all = cell(n_predictors, n_pos_tp);
@@ -146,16 +154,16 @@ for iTp = 1:n_tp
         end
 
         % save permutations
-        permDistributions.all{var, idx} = perm_corrs_mean(var,:);
+        permDistributions.all{v, idx} = perm_corrs_mean(v,:);
 
         % compute and save p-values
-        pvalMat.twosided.all(var, idx) = mean(abs(perm_corrs_mean(var,:)) >= abs(r_obs_mean(var))); % two-sided;
-        pvalMat.onesided.all(var, idx) = mean(perm_corrs_mean(var,:) >= r_obs_mean(var)); % one-sided
+        pvalMat.twosided.all(v, idx) = mean(abs(perm_corrs_mean(v,:)) >= abs(r_obs_mean(v))); % two-sided;
+        pvalMat.onesided.all(v, idx) = mean(perm_corrs_mean(v,:) >= r_obs_mean(v)); % one-sided
 
         % compute and save percentiles
-        percBounds.twosided.all.upper(var, idx) = prctile(perm_corrs_mean(var,:), 100-(cfg.alpha*100/2));
-        percBounds.twosided.all.lower(var, idx) = prctile(perm_corrs_mean(var,:), 0+(cfg.alpha*100/2));
-        percBounds.onesided.all.upper(var, idx) = prctile(perm_corrs_mean(var,:), 100-cfg.alpha*100);
+        percBounds.twosided.all.upper(v, idx) = prctile(perm_corrs_mean(v,:), 100-(cfg.alpha*100/2));
+        percBounds.twosided.all.lower(v, idx) = prctile(perm_corrs_mean(v,:), 0+(cfg.alpha*100/2));
+        percBounds.onesided.all.upper(v, idx) = prctile(perm_corrs_mean(v,:), 100-cfg.alpha*100);
     end
 
 end % tp
