@@ -4,7 +4,7 @@ if ~isfield(cfg, 'chance_level'); cfg.chance_level = 0.5; end
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
 
 % Initialize data storage
-n_timepoints = size(d.pairRep.included_time, 2);
+n_timepoints = length(d.pairRep.included_time);
 p_val = struct();
 t_stat = struct();
 is_significant = struct();
@@ -74,7 +74,7 @@ if cfg.plotting
         plot(x(is_significant.(cat)), repmat(y_min-0.002*strcmp(cat, 'bathroom'),1,sum(is_significant.(cat))), '*', 'Color', colors(i, :), 'MarkerSize', 3);
     end
 
-    xlim([min(x)-min(x)-0.01, max(x)+0.01])
+    xlim([min(x)-min(x)-0.2, max(x)+0.01])
     xline(0, '--');
     yline(0.5, '--');
 

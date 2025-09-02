@@ -8,8 +8,9 @@ tiledlayout(1,2);   % 1 Zeile, 2 Spalten
 
 timepoints = d.pairRep.included_time;
 timeseries = d.pairRep.all_time;
-x  = timeseries(timepoints);
+x = timeseries(timepoints);
 x_lim = ([min(x)-min(x)-0.01, max(x)+0.01]);
+ntp_before_stim = length(d.pairRep.included_time) - length(d.stats.testedTime);
 
 for category = cfg.categories
     nexttile;
@@ -18,7 +19,7 @@ for category = cfg.categories
     legend_labels = cell(1,3);
     plot_counter = 1;
     p = gobjects(1, length(cfg.RDM_to_partial_out)*length(cfg.categories));
-    for var = 1:numel(cfg.RDM_to_partial_out)
+    for var = 1:length(cfg.RDM_to_partial_out)
 
         % smooth data
         y = d.resMat.partial_cor.(category)(var, :);
@@ -26,10 +27,12 @@ for category = cfg.categories
 
         % compute significant time points
         if isfield(pval, category)
-            sigMat = pval.(category)(var,:) <= 0.05;
+            sigmat = pval.(category)(var,:) <= 0.05;
         else
-            sigMat = pval.(cfg.RDM_to_partial_out{var}).(category) <= 0.05;
+            sigmat = pval.FDR.(category)(var,:);
         end
+
+        sigMat = [false(1,ntp_before_stim), sigmat];
 
         % get color
         if startsWith(cfg.RDM_to_partial_out{var}, 'typical')
@@ -45,7 +48,7 @@ for category = cfg.categories
 
         % mark signifikant time points
         pos = 0.1 - var*0.01;
-        plot(x(sigMat), repmat(pos,1,sum(sigMat)), ...
+        plot(x(sigMat), repmat(pos, 1, sum(sigMat)), ...
             'color', clr, 'marker' ,'*', 'MarkerSize', 5, 'LineStyle','none');
 
         legend_labels{plot_counter} = [strrep(cfg.RDM_to_partial_out{var}, '_', '-'), ' ', category];
@@ -84,10 +87,12 @@ for var = 1:numel(cfg.RDM_to_partial_out)
 
     % compute signifikant time points
     if isfield(pval, category)
-        sigMat = pval.avg(var,:) <= 0.05;
+        sigmat = pval.all(var,:) <= 0.05;
     else
-        sigMat = pval.avg.(cfg.RDM_to_partial_out{var}) <= 0.05;
+        sigmat = pval.FDR.all(var,:);
     end
+
+    sigMat = [false(1, ntp_before_stim), sigmat];
 
     % get color
     if startsWith(cfg.RDM_to_partial_out{var}, 'typical')
@@ -103,7 +108,7 @@ for var = 1:numel(cfg.RDM_to_partial_out)
 
     % mark signifikant time points
     pos = 0.1 - var*0.01;
-    plot(x(sigMat), repmat(pos,1,sum(sigMat)), ...
+    plot(x(sigMat), repmat(pos, 1, sum(sigMat)), ...
         'color', clr, 'marker' ,'*', 'MarkerSize', 5, 'LineStyle','none');
 
     legend_labels{plot_counter} = [strrep(cfg.RDM_to_partial_out{var}, '_', '-'),' mean'];
