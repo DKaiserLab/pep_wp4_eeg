@@ -63,7 +63,9 @@ for iSub = 1:length(cfg.subNums)
 
             for pred = cfg.predictor_RDMs
                 pred = char(pred);
-                stimuli.all.(pred) = struct;
+                if strcmp(cat, cfg.categories{1})
+                    stimuli.all.(pred) = struct;
+                end
                 stimuli.all.(pred).(cat) = nan(cfg.n, numel(d.(cfg.ISC_type).included_time));
             end
         end
