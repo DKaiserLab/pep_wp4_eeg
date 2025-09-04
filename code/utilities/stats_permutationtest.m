@@ -88,9 +88,6 @@ for iTp = 1:n_tp
             RDMs_local = RDMs;
             RDMs_local(1).RDM = RDM_orig(perm_idx, perm_idx);
 
-            %             perm_RDM = RDM_orig(perm_idx, perm_idx); % permute original, shuffle rows and columns
-            %             RDMs(1).RDM = perm_RDM;
-
             if partial
                 [~, rMat_perm, ~] = partial_cor_RDM(cfg, RDMs_local);
             else
@@ -99,11 +96,6 @@ for iTp = 1:n_tp
 
             perm_corrs(:, p) = rMat_perm(2:end, 1);
         end
-
-        nUnique = size(unique(perm_corrs','rows'),1);
-        fprintf('Permutations: %d requested, %d unique\n', cfg.n_permutations, nUnique);
-        fprintf('Varianz Perm corr (mean across preds): %g\n', mean(var(perm_corrs,0,2)));
-
 
         perm_corrs_allCats{cate_num} = perm_corrs;
 
@@ -192,7 +184,6 @@ for c = 1:length(cfg.categories)
     pvalMat.onesided.FDR.(cat_name) = nan(n_predictors, n_pos_tp);
     sigMat.FDR.(cat_name) = false(n_predictors, n_pos_tp);
     for i=1:n_predictors
-%         pred = cfg.RDM_to_partial_out{i};
         pvals = pvalMat.onesided.(cat_name)(i,:);
         [is_significant, ~, ~, adj_p] = fdr_bh(pvals, cfg.alpha, 'pdep', 'yes');
         sigMat.FDR.(cat_name)(i,:) = is_significant;
