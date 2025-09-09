@@ -17,15 +17,35 @@ if cfg.subNums(iSub) == 114
     ds.sa.trialinfo(1:10) = setdiff(unique(1:cfg.nTrials/2), unique(ds.sa.trialinfo(1:cfg.nTrials/2)'));
 
     % make chunks
-    nch = 20;
+    nch=cfg.nBlocks/cfg.nTrials2average;
     ds.sa.chunks=(1:length(ds.sa.trialinfo))';
     ds.sa.targets=ds.sa.trialinfo;
     ds.sa.chunks=cosmo_chunkize(ds, nch);
 
-    % remove first block
-    includeTrials = ones(1, cfg.nTrials*cfg.nBlocks);
-    includeTrials(1:cfg.nTrials/2) = 0;
-    ds = cosmo_slice(ds, logical(includeTrials'));
+    if cfg.nTrials2average == 1
+
+        % remove first block
+        includeTrials = ones(1, cfg.nTrials*cfg.nBlocks);
+        includeTrials(1:cfg.nTrials/2) = 0;
+        ds = cosmo_slice(ds, logical(includeTrials'));
+
+    elseif cfg.nTrials2average == 2
+
+
+        % replace fake trials by copy of trial they get averaged with
+        ds.samples(1:cfg.nTrials/2, :) = ds.samples(cfg.nTrials*nch+1:cfg.nTrials*nch+cfg.nTrials/2, :);
+        ds.sa.targets(1:cfg.nTrials/2) = ds.sa.targets(cfg.nTrials*nch+1:cfg.nTrials*nch+cfg.nTrials/2);
+        ds.sa.trialinfo(1:cfg.nTrials/2) = ds.sa.trialinfo(cfg.nTrials*nch+1:cfg.nTrials*nch+cfg.nTrials/2);
+
+        % averaging trials
+        ds = cosmo_average_samples(ds, 'targets', ds.sa.targets, 'chunks', ds.sa.chunks);
+
+    else
+        waring('Find solution for this subject and this trial averaging condition')
+
+    end
+
+
 else
     waring('Find solution for this subject')
 end

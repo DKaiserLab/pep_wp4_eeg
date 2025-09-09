@@ -57,14 +57,14 @@ for iSub = 1:length(cfg.subNums)
         ds.sa.targets=ds.sa.trialinfo;
         ds.sa.chunks=cosmo_chunkize(ds, nch);
 
+        % averaging trials
+        ds = cosmo_average_samples(ds, 'targets', ds.sa.targets, 'chunks', ds.sa.chunks);
+
     else
         warning(['Subject: ', num2str(cfg.subNums(iSub)), ' has incomplete dataset'])
         ds = makeChunkForIncompleteDS(ds, cfg, iSub);
     end
 
-    % averaging trials
-%     ds = cosmo_average_samples(ds);
-    ds = cosmo_average_samples(ds, 'targets', ds.sa.targets, 'chunks', ds.sa.chunks);
 
     % time range for decoding
     timepoints = find(ds.a.fdim.values{2, 1} >= cfg.decoding_start &...
