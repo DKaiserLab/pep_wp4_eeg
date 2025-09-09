@@ -1,6 +1,6 @@
 function plot_corr_sig(cfg, d, pval, save_name)
 
-if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 6; end
+if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 10; end
 if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.1, 0.1]; end
 
 fig = figure;

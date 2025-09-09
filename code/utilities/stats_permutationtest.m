@@ -30,7 +30,7 @@ idx = 0;
 pvalMat = struct;
 pvalMat.twosided = struct;
 pvalMat.onesided = struct;
-percBounds = struct;
+% percBounds = struct;
 sigMat = struct;
 
 % rng(1);
@@ -57,9 +57,9 @@ for iTp = 1:n_tp
 
         % init RDM
         RDMs = struct;
-        RDMs(1).name = d.ISC.([category,'_RDM']).(cfg.ISC_type).name;
-        RDMs(1).color = d.ISC.([category,'_RDM']).(cfg.ISC_type).color;
-        RDMs(1).RDM = d.ISC.([category,'_RDM']).(cfg.ISC_type)(1).RDM;
+        RDMs(1).name = d.ISC.([category,'_RDM']).(cfg.ISC_type)(iTp).name;
+        RDMs(1).color = d.ISC.([category,'_RDM']).(cfg.ISC_type)(iTp).color;
+        RDMs(1).RDM = d.ISC.([category,'_RDM']).(cfg.ISC_type)(iTp).RDM;
 
         labels = {RDMs.name};
         [RDMs, cfg.labels] = evaluate_predictor_RDMs(d, RDMs, labels, cfg, category);
@@ -104,21 +104,21 @@ for iTp = 1:n_tp
                 pvalMat.twosided.(category) = nan(n_predictors, n_pos_tp);
                 pvalMat.onesided.(category) = nan(n_predictors, n_pos_tp);
                 permDistributions.(category) = cell(n_predictors, n_pos_tp);
-                percBounds.twosided.(category) = struct;
-                percBounds.twosided.(category).upper = nan(n_predictors, n_pos_tp);
-                percBounds.twosided.(category).lower = nan(n_predictors, n_pos_tp);
-                percBounds.onesided.(category) = struct;
-                percBounds.onesided.(category).upper = nan(n_predictors, n_pos_tp);
+%                 percBounds.twosided.(category) = struct;
+%                 percBounds.twosided.(category).upper = nan(n_predictors, n_pos_tp);
+%                 percBounds.twosided.(category).lower = nan(n_predictors, n_pos_tp);
+%                 percBounds.onesided.(category) = struct;
+%                 percBounds.onesided.(category).upper = nan(n_predictors, n_pos_tp);
             end
             % save permutations
             permDistributions.(category){v, idx} = perm_corrs(v, :);
             % compute and save p-values
             pvalMat.twosided.(category)(v, idx) = mean(abs(perm_corrs(v,:)) >= abs(r_obs(v))); % two-sided
             pvalMat.onesided.(category)(v, idx) = mean(perm_corrs(v,:) >= r_obs(v)); % one-sided;
-            % compute and save percentiles
-            percBounds.twosided.(category).upper(v, idx) = prctile(perm_corrs(v,:), 100-(cfg.alpha*100/2));
-            percBounds.twosided.(category).lower(v, idx) = prctile(perm_corrs(v,:), 0+(cfg.alpha*100/2));
-            percBounds.onesided.(category).upper(v, idx) = prctile(perm_corrs(v,:), 100-cfg.alpha*100);
+%             % compute and save percentiles
+%             percBounds.twosided.(category).upper(v, idx) = prctile(perm_corrs(v,:), 100-(cfg.alpha*100/2));
+%             percBounds.twosided.(category).lower(v, idx) = prctile(perm_corrs(v,:), 0+(cfg.alpha*100/2));
+%             percBounds.onesided.(category).upper(v, idx) = prctile(perm_corrs(v,:), 100-cfg.alpha*100);
 
         end
 
@@ -138,11 +138,11 @@ for iTp = 1:n_tp
             pvalMat.twosided.all = nan(n_predictors, n_pos_tp);
             pvalMat.onesided.all = nan(n_predictors, n_pos_tp);
             permDistributions.all = cell(n_predictors, n_pos_tp);
-            percBounds.twosided.all = struct;
-            percBounds.twosided.all.upper = nan(n_predictors, n_pos_tp);
-            percBounds.twosided.all.lower = nan(n_predictors, n_pos_tp);
-            percBounds.onesided.all = struct;
-            percBounds.onesided.all.upper = nan(n_predictors, n_pos_tp);
+%             percBounds.twosided.all = struct;
+%             percBounds.twosided.all.upper = nan(n_predictors, n_pos_tp);
+%             percBounds.twosided.all.lower = nan(n_predictors, n_pos_tp);
+%             percBounds.onesided.all = struct;
+%             percBounds.onesided.all.upper = nan(n_predictors, n_pos_tp);
         end
 
         % save permutations
@@ -153,9 +153,9 @@ for iTp = 1:n_tp
         pvalMat.onesided.all(v, idx) = mean(perm_corrs_mean(v,:) >= r_obs_mean(v)); % one-sided
 
         % compute and save percentiles
-        percBounds.twosided.all.upper(v, idx) = prctile(perm_corrs_mean(v,:), 100-(cfg.alpha*100/2));
-        percBounds.twosided.all.lower(v, idx) = prctile(perm_corrs_mean(v,:), 0+(cfg.alpha*100/2));
-        percBounds.onesided.all.upper(v, idx) = prctile(perm_corrs_mean(v,:), 100-cfg.alpha*100);
+%         percBounds.twosided.all.upper(v, idx) = prctile(perm_corrs_mean(v,:), 100-(cfg.alpha*100/2));
+%         percBounds.twosided.all.lower(v, idx) = prctile(perm_corrs_mean(v,:), 0+(cfg.alpha*100/2));
+%         percBounds.onesided.all.upper(v, idx) = prctile(perm_corrs_mean(v,:), 100-cfg.alpha*100);
     end
 
 end % tp
@@ -194,7 +194,7 @@ end
 stats = struct;
 stats.pvalMat = pvalMat;
 stats.sigMat = sigMat;
-stats.percBounds = percBounds;
+% stats.percBounds = percBounds;
 stats.predictors = predictors;
 stats.testedTime = pos_tp;
 

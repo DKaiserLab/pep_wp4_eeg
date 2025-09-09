@@ -1,7 +1,11 @@
-function stats_ttest(cfg, d)
+function is_significant = stats_ttest(cfg, d)
+
+x = d.pairRep.all_time(d.pairRep.included_time);
 
 if ~isfield(cfg, 'chance_level'); cfg.chance_level = 0.5; end
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
+if ~isfield(cfg, 'xlim'); cfg.xlim = [min(x)-min(x)-0.2, max(x)+0.01]; end
+if ~isfield(cfg, 'alpha'); cfg.alpha = 0.05; end
 
 % Initialize data storage
 n_timepoints = length(d.pairRep.included_time);
@@ -19,13 +23,13 @@ for i = 1:length(cfg.categories)
 
     % compute t-test for each time point
     for t = 1:n_timepoints
-        [~, p, ~, stats] = ttest(d.meanAcc.(cat)(t,:), cfg.chance_level, 'tail', 'right');
+        [~, p, ~, stats] = ttest(d.meanAcc.(cat)(t,:), cfg.chance_level, 'tail', 'right', 'alpha', cfg.alpha);
         p_vals_cat(t) = p;
         t_vals_cat(t) = stats.tstat;
     end
 
     % FDR
-    [is_significant.(cat), ~, ~, adj_p] = fdr_bh(p_vals_cat, 0.050);
+    [is_significant.(cat), ~, ~, adj_p] = fdr_bh(p_vals_cat, cfg.alpha);
 
     % save
     p_val.(cat) = p_vals_cat;
@@ -54,7 +58,6 @@ if cfg.plotting
     h = gobjects(1, length(cfg.categories));
 
     colors = lines(length(cfg.categories));
-    x = d.pairRep.all_time(d.pairRep.included_time);
     y_min = min([mean(d.meanAcc.kitchen,2); mean(d.meanAcc.bathroom,2)]) - 0.002; % position to mark significant time points
 
     for i=1:length(cfg.categories)
@@ -68,13 +71,13 @@ if cfg.plotting
         fill([x, fliplr(x)], ... 
             [upper, fliplr(lower)], colors(i, :), ...
             'EdgeColor', 'none', 'FaceAlpha', 0.3);
-        h(i) = plot(x, mean_acc, 'Color', colors(i, :), 'LineWidth', 2);
+        h(i) = plot(x, mean_acc, 'Color', colors(i, :), 'LineWidth', 3);
 
         % mark significant time points
         plot(x(is_significant.(cat)), repmat(y_min-0.002*strcmp(cat, 'bathroom'),1,sum(is_significant.(cat))), '*', 'Color', colors(i, :), 'MarkerSize', 3);
     end
 
-    xlim([min(x)-min(x)-0.2, max(x)+0.01])
+    xlim(cfg.xlim)
     xline(0, '--');
     yline(0.5, '--');
 

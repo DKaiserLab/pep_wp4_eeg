@@ -2,7 +2,7 @@ function PairwiseDecodingPlots(cfg, res)
 
 if ~isfield(cfg, 'makeBetweenComparison'); cfg.makeBetweenComparison = false;end
 if ~isfield(cfg, 'labels'); cfg.labels = cfg.subNums;end
-if ~isfield(cfg, 'plotMatrix'); cfg.plotMatrix = false;end
+if ~isfield(cfg, 'plot_rdm'); cfg.plot_rdm = false;end
 if ~isfield(cfg, 'dissimilarity'); cfg.dissimilarity = true;end
 if ~isfield(cfg, 'bar'); cfg.bar = false;end
 
@@ -15,6 +15,7 @@ fns = fieldnames(res);
 subjects = fns(3:end);
 timepoints = res.included_time;
 timeseries = res.all_time;
+first_pos_tp = find(timeseries(timepoints)>=0, 1, 'first');
 x  = timeseries(timepoints);
 
 % Initialize data storage
@@ -83,21 +84,25 @@ if cfg.bar
     hold off;
 end
 %% rdm
-if cfg.plotMatrix
+if cfg.plot_rdm
     % take mean across subjects
     mean_all_rdm_data = squeeze(mean(all_rdm_data, 3));
 
     fig = figure('position',[1,1,1000,600], 'unit','centimeters');
-    % tiledlayout(4, 4);
-    title('Mean pairwise decoding accuracy per timepoint');
+    tiledlayout(5, 5);
+    sgtitle('Mean pairwise decoding accuracy per timepoint');
 
-    for tp = 1:num_timepoints
-        %     if ismember(tp-1, (16:16:num_timepoints))
-        %         figure;
-        %         tiledlayout(2, 2);
-        %     else
-        %         nexttile;
-        %     end
+    for tp = first_pos_tp:num_timepoints
+        if ismember(tp, first_pos_tp + [25 50 75 100])
+            if cfg.saving
+                save_plot(fig, ['mean-pairwise-decoding-rdm', num2str(tp)], cfg.figPath);
+            end
+            fig = figure('position',[1,1,1000,600], 'unit','centimeters');
+            tiledlayout(5, 5);
+            sgtitle('Mean pairwise decoding accuracy per timepoint');
+            %         else
+            %             nexttile;
+        end
 
         nexttile;
         set(gcf, 'color', [1 1 1]); % white background
@@ -108,20 +113,30 @@ if cfg.plotMatrix
         % plot RDM
         imagesc(tpRDM, [0.50, 0.65])
         colorbar;
-        title(timeseries(timepoints(tp)));
+        title(timeseries(timepoints(tp)));    
+    end
+    if cfg.saving
+        save_plot(fig, 'mean-pairwise-decoding-rdm', cfg.figPath);
     end
 
     % get inter-tp correlation
-    nexttile
+    fig=figure;
     corrtps = corr(alltpRDMs, 'type', 'Spearman', 'rows', 'pairwise');
 
     imagesc(corrtps, [-0.7, 0.7])
     colorbar;
     title('Inter-timepoint correlation');
-    sgtitle('Mean decoding accuracy', 'FontSize', 18);
+    vals = linspace(0, num_timepoints, 5);
+    xticks(linspace(1, num_timepoints, 5)); 
+    xticklabels(round(x([1, vals(2:end)]), 2));
+
+    yticks(linspace(1, num_timepoints, 5));
+    yticklabels(round(x([1, vals(2:end)]), 2));
+
+%     sgtitle('Mean decoding accuracy', 'FontSize', 18);
 
     if cfg.saving
-        save_plot(fig, 'mean-pairwise-decoding-acc-bar', cfg.figPath);
+        save_plot(fig, 'intertimepoint-corr-rdm', cfg.figPath);
     end
 end
 
