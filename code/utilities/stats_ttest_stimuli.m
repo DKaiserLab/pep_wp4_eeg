@@ -72,6 +72,7 @@ if cfg.plotting
     set(gcf, 'color', [1 1 1]);
 
     fig = figure;
+%     fig.Position = [100 100 500 500]; 
     tiledlayout(length(cfg.RDM_to_partial_out),1);
 
     x=d.pairRep.all_time(d.pairRep.included_time);
@@ -124,11 +125,13 @@ if cfg.plotting
     lg.Layout.Tile = 'east';
     % save plot
     if cfg.saving
-        save_plot(fig, cfg.save_name, cfg.figPath);
+        fig_path = fullfile(cfg.figPath, ['exp_', num2str(cfg.exp_num)], 'compare_tp_RDMs_to_stimuli_RDMs');
+        save_plot(fig, cfg.save_name, fig_path);
     end
 
     %%
-    figure;
+    fig = figure;
+    fig.Position = [100 100 1000 500]; 
     hold on;
     p = gobjects(1, length(cfg.RDM_to_partial_out));  % Länge an die Schleife anpassen
     legend_labels = cell(1, length(cfg.RDM_to_partial_out));
@@ -175,8 +178,7 @@ if cfg.plotting
     % saving
     if cfg.saving
         fig_path = fullfile(cfg.figPath, ['exp_', num2str(cfg.exp_num)], 'compare_tp_RDMs_to_stimuli_RDMs');
-        fig_name = 'Time-resolved-corr-reference-RDMs-with-stimuli';
-        save_plot(fig, fig_name, fig_path)
+        save_plot(fig, [cfg.save_name, '_mean'], fig_path)
     end
 end
 
