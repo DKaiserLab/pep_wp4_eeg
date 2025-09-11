@@ -19,7 +19,7 @@ classifier = @cosmo_classify_lda;
 
 % get existing pairwise decoding results
 fileName = fullfile(cfg.outputPath, 'group_level', 'RDM',...
-    'results_RDM_of_pairwise_decoding_reref_avg_pca.mat');
+    'results_RDM_of_pairwise_decoding_reref_avg.mat');
 if exist(fileName, 'file')
     load(fileName)
 end
@@ -32,7 +32,7 @@ for iSub = 1:length(cfg.subNums)
     % check if is part of result structure already
     subID2 = strrep(subID, '-', '');
     if exist('res', 'var')
-        if isfield(res, subID2) && cfg.subNums(iSub)~=114
+        if isfield(res, subID2) %&& cfg.subNums(iSub)~=114
             disp(['RDM for ', subID, ' already exists']);
             continue
         end
@@ -172,7 +172,9 @@ for cate_num = 1:numel(cfg.categories)
     end
 end
 
-
+res.nTrials2average = cfg.nTrials2average;
+res.pca = cfg.pca;
+if cfg.pca; res.var_threshold = cfg.var_threshold;end
 
 % save results
 outputFolder = fullfile(cfg.outputPath, 'group_level', 'RDM');
