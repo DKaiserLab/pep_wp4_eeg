@@ -8,6 +8,10 @@ cfg.all_timepoints = d.pairRep.all_time;
 
 % get number of time points
 ntimepoints=numel(cfg.timepoints);
+first_pos_tp = find(cfg.all_timepoints(cfg.timepoints)>=0, 1, 'first');
+
+plot_rdm2 = cfg.plot_rdm;
+cfg.plot_rdm = false;
 
 % loop through categories
 for cate_num = 1:numel(cfg.categories)
@@ -40,6 +44,15 @@ for cate_num = 1:numel(cfg.categories)
         end
 
         % make IS-RDM
+        if tp >= first_pos_tp && plot_rdm2
+            cfg.plot_rdm = true;
+            if ismember(tp, first_pos_tp + [0 25 50 75 100])
+                figure('position',[1,1,1000,600], 'unit','centimeters');
+                tiledlayout(5, 5);
+            end
+            sgtitle('ISC');
+            nexttile;
+        end
         [~, mat_out, ~] = make_RDM(RDMmat, cfg);
         if cfg.dissimilarity
             median_mat_out = 1 - mat_out;

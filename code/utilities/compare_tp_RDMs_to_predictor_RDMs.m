@@ -19,6 +19,7 @@ if cfg.plotting
     legend_labels = {};
     plot_counter = 1;
     fig = figure;
+    fig.Position = [100 100 1000 500]; 
     hold on
 end
 
@@ -58,7 +59,7 @@ for cate_num = 1:numel(cfg.categories)
         if cfg.partial_cor
             d.resMat.partial_cor.(category)(:, iTp) = rMat(2:end, 1);
         else
-            d.resMat.cor.(category)(iTp) = rMat;
+            d.resMat.cor.(category)(iTp) = rMat(2:end,1);
         end
 
     end
@@ -74,11 +75,11 @@ for cate_num = 1:numel(cfg.categories)
             y = smoothdata(y, 2, 'movmean', cfg.smoothing_window);
 
             % get color
-            if startsWith(cfg.RDM_to_partial_out{var}, 'typical') %strcmp(cfg.RDM_to_partial_out{var}, 'typical_late')
+            if startsWith(cfg.RDM_to_partial_out{var}, 'typical') 
                 clr = [1, 0, 1];
-            elseif startsWith(cfg.RDM_to_partial_out{var}, 'control') %strcmp(cfg.RDM_to_partial_out{var}, 'control_late')
+            elseif startsWith(cfg.RDM_to_partial_out{var}, 'control') 
                 clr = [.7, .7, .7];
-            elseif startsWith(cfg.RDM_to_partial_out{var}, 'photos')%strcmp(cfg.RDM_to_partial_out{var}, 'photos_late')
+            elseif startsWith(cfg.RDM_to_partial_out{var}, 'photos')
                 clr = [.4, .9, 1];
             end
 
@@ -105,11 +106,11 @@ if cfg.plotting && cfg.partial_cor
         y = smoothdata(y, 2, 'movmean', cfg.smoothing_window);
 
         % get color
-        if startsWith(cfg.RDM_to_partial_out{var}, 'typical') %strcmp(cfg.RDM_to_partial_out{var}, 'typical_late')
+        if startsWith(cfg.RDM_to_partial_out{var}, 'typical')
             clr = [1, 0, 1];
-        elseif startsWith(cfg.RDM_to_partial_out{var}, 'control') %strcmp(cfg.RDM_to_partial_out{var}, 'control_late')
+        elseif startsWith(cfg.RDM_to_partial_out{var}, 'control') 
             clr = [.7, .7, .7];
-        elseif startsWith(cfg.RDM_to_partial_out{var}, 'photos')%strcmp(cfg.RDM_to_partial_out{var}, 'photos_late')
+        elseif startsWith(cfg.RDM_to_partial_out{var}, 'photos')
             clr = [.4, .9, 1];
         end
         % plot mean
@@ -139,8 +140,8 @@ if cfg.plotting && cfg.partial_cor
         ylim(cfg.ylim)
     end
 
-    yline(0, '--')
-    xline(0, '--')
+    yline(0, '--', 'HandleVisibility', 'off');
+    xline(0, '--','HandleVisibility', 'off');
     xlabel('time');
     set(gca, 'box', 'off');
 

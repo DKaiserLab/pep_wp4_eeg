@@ -1,11 +1,16 @@
 function plot_corr_sig(cfg, d, pval, save_name)
 
+% evaluate input
 if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 10; end
 if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.1, 0.1]; end
+if ~isfield(cfg, 'tfce'); cfg.tfce = false; end
 
+% create figure and layout
 fig = figure;
-tiledlayout(1,2);   % 1 Zeile, 2 Spalten
+fig.Position = [100 100 1400 500]; 
+tiledlayout(1,2);
 
+% prep time points and variables
 timepoints = d.pairRep.included_time;
 timeseries = d.pairRep.all_time;
 x = timeseries(timepoints);
@@ -18,21 +23,35 @@ for category = cfg.categories
     category = char(category);
     legend_labels = cell(1,3);
     plot_counter = 1;
-    p = gobjects(1, length(cfg.RDM_to_partial_out)*length(cfg.categories));
+    g = gobjects(1, length(cfg.RDM_to_partial_out)*length(cfg.categories));
+
     for var = 1:length(cfg.RDM_to_partial_out)
 
         % smooth data
         y = d.resMat.partial_cor.(category)(var, :);
         y = smoothdata(y, 2, 'movmean', cfg.smoothing_window);
 
+        sigMat = false(1,length(timepoints));
         % compute significant time points
         if isfield(pval, category)
-            sigmat = pval.(category)(var,:) <= 0.05;
+            sigMat(ntp_before_stim+1:end) = pval.(category)(var,:) <= 0.05;
+        elseif isfield(pval, 'FDR')
+            sigMat(ntp_before_stim+1:end) = pval.FDR.(category)(var,:);
+        elseif isfield(pval, 'cluster')
+            if cfg.tfce
+                sigMat(ntp_before_stim+1:end) = pval.cluster.(category){var}.pvals <= cfg.alpha;
+            elseif ~isempty(pval.cluster.(category){var}.obs_cluster_stats)
+                for p=1:length(pval.cluster.(category){var}.pvals_cluster)
+                    if pval.cluster.(category){var}.pvals_cluster(p) <= cfg.alpha
+                        idx = pval.cluster.(category){var}.obs_clusters.PixelIdxList{p} + ntp_before_stim ;
+                        sigMat(idx)=1;
+                    end
+                end
+            end
         else
-            sigmat = pval.FDR.(category)(var,:);
+            error('Not defined.')
         end
 
-        sigMat = [false(1,ntp_before_stim), sigmat];
 
         % get color
         if startsWith(cfg.RDM_to_partial_out{var}, 'typical')
@@ -44,7 +63,7 @@ for category = cfg.categories
         end
 
         % plot line
-        p(plot_counter) = plot(x, y, 'color', clr, 'LineWidth', 3);
+        g(plot_counter) = plot(x, y, 'color', clr, 'LineWidth', 3);
 
         % mark signifikant time points
         pos = 0.1 - var*0.01;
@@ -61,7 +80,7 @@ for category = cfg.categories
     yline(0, '--')
     xline(0, '--')
     xlabel('time');
-    legend([p(1:plot_counter-1)], legend_labels, 'Location', 'best');
+    legend([g(1:plot_counter-1)], legend_labels, 'Location', 'best');
     set(gca, 'box', 'off');
 
 end % category
@@ -70,12 +89,15 @@ sgtitle('Time-resolved correlation ISC-RDM with predictors', 'FontSize', 18);
 hold off;
 save_plot(fig, ['corr_sig_', save_name], cfg.figPath)
 
-% 
+% create figure
 fig = figure;
+fig.Position = [100 100 1000 500]; 
 hold on;
+
+% prep time points and variables
 legend_labels = cell(1,3);
 plot_counter = 1;
-p = gobjects(1, length(cfg.RDM_to_partial_out));
+g = gobjects(1, length(cfg.RDM_to_partial_out));
 
 for var = 1:numel(cfg.RDM_to_partial_out)
     % smooth data
@@ -86,13 +108,25 @@ for var = 1:numel(cfg.RDM_to_partial_out)
     y = smoothdata(y, 2, 'movmean', cfg.smoothing_window);
 
     % compute signifikant time points
+    sigMat = false(1, length(timepoints));
     if isfield(pval, category)
-        sigmat = pval.all(var,:) <= 0.05;
+        sigMat(ntp_before_stim+1:end) = pval.all(var,:) <= 0.05;
+    elseif isfield(pval, 'FDR')
+        sigMat(ntp_before_stim+1:end) = pval.FDR.all(var,:);
+    elseif isfield(pval, 'cluster')
+        if cfg.tfce
+            sigMat(ntp_before_stim+1:end) = pval.cluster.all{var}.pvals <= cfg.alpha;
+        elseif ~isempty(pval.cluster.all{var}.obs_cluster_stats)
+            for p=1:length(pval.cluster.all{var}.pvals_cluster)
+                if pval.cluster.all{var}.pvals_cluster(p) <= cfg.alpha
+                    idx = pval.cluster.all{var}.obs_clusters.PixelIdxList{p} + ntp_before_stim ;
+                    sigMat(idx)=1;
+                end
+            end
+        end
     else
-        sigmat = pval.FDR.all(var,:);
+        error('Not defined.')
     end
-
-    sigMat = [false(1, ntp_before_stim), sigmat];
 
     % get color
     if startsWith(cfg.RDM_to_partial_out{var}, 'typical')
@@ -104,7 +138,7 @@ for var = 1:numel(cfg.RDM_to_partial_out)
     end
 
     % plot mean
-    p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '-', 'LineWidth', 3);
+    g(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '-', 'LineWidth', 3);
 
     % mark signifikant time points
     pos = 0.1 - var*0.01;
@@ -122,13 +156,12 @@ else
 end
 
 set(gca, 'LineWidth', 1, 'FontName', cfg.FontName, 'FontSize', cfg.FontSize, 'FontWeight', 'bold');
-
 ylim(cfg.ylim);
 xlim(x_lim);
 yline(0, '--');
 xline(0, '--');
 xlabel('time');
-legend([p(1:plot_counter-1)], legend_labels, 'Location', 'best');
+legend([g(1:plot_counter-1)], legend_labels, 'Location', 'best');
 set(gca, 'box', 'off');
 
 sgtitle('Time-resolved correlation ISC-RDM with predictors', 'FontSize', 18);
