@@ -8,7 +8,7 @@ if ~isfield(cfg, 'decoding_start'); cfg.decoding_start = -0.2; end
 if ~isfield(cfg, 'decoding_end'); cfg.decoding_end = 0.5; end
 if ~isfield(cfg, 'makeBetweenComparison'); cfg.makeBetweenComparison = false; end
 makeBetweenComparison = cfg.makeBetweenComparison;
-if ~isfield(cfg, 'nTrials2average'); cfg.nTrials2average = 2; end
+if ~isfield(cfg, 'nTrials2average'); cfg.nTrials2average = 1; end
 if cfg.nTrials2average ~= 1 && mod(cfg.nTrials2average, 2) ~= 0
     error('nTrials2average must be 1 or a even number')
 end
@@ -17,9 +17,14 @@ if ~isfield(cfg, 'nBlocks'); cfg.nBlocks = 20; end
 % Define classifiers
 classifier = @cosmo_classify_lda;
 
-% get existing pairwise decoding results
-fileName = fullfile(cfg.outputPath, 'group_level', 'RDM',...
-    'results_RDM_of_pairwise_decoding_reref_avg.mat');
+    % get existing pairwise decoding results
+if cfg.nTrials2average == 1
+        fileName = fullfile(cfg.outputPath, 'group_level', 'RDM',...
+        'results_RDM_of_pairwise_decoding_reref_w.mat');
+elseif cfg.nTrials2average > 1
+    fileName = fullfile(cfg.outputPath, 'group_level', 'RDM',...
+        'results_RDM_of_pairwise_decoding_reref_avg.mat');
+end
 if exist(fileName, 'file')
     load(fileName)
 end

@@ -14,7 +14,7 @@ tiledlayout(1,2);
 timepoints = d.pairRep.included_time;
 timeseries = d.pairRep.all_time;
 x = timeseries(timepoints);
-x_lim = ([min(x)-min(x)-0.01, max(x)+0.01]);
+x_lim = ([min(x)-0.01, max(x)+0.01]);
 ntp_before_stim = length(d.pairRep.included_time) - length(d.stats.testedTime);
 
 for category = cfg.categories
@@ -68,7 +68,7 @@ for category = cfg.categories
         % mark signifikant time points
         pos = 0.1 - var*0.01;
         plot(x(sigMat), repmat(pos, 1, sum(sigMat)), ...
-            'color', clr, 'marker' ,'*', 'MarkerSize', 5, 'LineStyle','none');
+            'color', clr, 'marker' ,'O', 'MarkerFaceColor', clr ,'MarkerSize', 5, 'LineStyle','none');
 
         legend_labels{plot_counter} = [strrep(cfg.RDM_to_partial_out{var}, '_', '-'), ' ', category];
         plot_counter = plot_counter+1;
@@ -143,7 +143,7 @@ for var = 1:numel(cfg.RDM_to_partial_out)
     % mark signifikant time points
     pos = 0.1 - var*0.01;
     plot(x(sigMat), repmat(pos, 1, sum(sigMat)), ...
-        'color', clr, 'marker' ,'*', 'MarkerSize', 5, 'LineStyle','none');
+        'color', clr, 'marker' ,'O', 'MarkerFaceColor', clr ,'MarkerSize', 5, 'LineStyle','none');
 
     legend_labels{plot_counter} = [strrep(cfg.RDM_to_partial_out{var}, '_', '-'),' mean'];
     plot_counter = plot_counter + 1;

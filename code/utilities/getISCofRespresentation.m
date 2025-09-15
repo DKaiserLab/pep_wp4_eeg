@@ -114,6 +114,9 @@ if cfg.plotting
     title('ISC of representation');
     legend(h, cfg.categories);
 
+    set(gca, 'LineWidth', 1, 'FontName', cfg.FontName, 'FontSize', cfg.FontSize, 'FontWeight', 'bold');
+    set(gca, 'box', 'off');
+
     if cfg.saving
         save_plot(fig, 'ISCofRepresentation', cfg.figPath);
     end

@@ -74,7 +74,8 @@ if cfg.plotting
         h(i) = plot(x, mean_acc, 'Color', colors(i, :), 'LineWidth', 3);
 
         % mark significant time points
-        plot(x(is_significant.(cat)), repmat(y_min-0.002*strcmp(cat, 'bathroom'),1,sum(is_significant.(cat))), '*', 'Color', colors(i, :), 'MarkerSize', 3);
+        plot(x(is_significant.(cat)), repmat(y_min-0.002*strcmp(cat, 'bathroom'),1,sum(is_significant.(cat))),...
+            'marker' ,'O', 'MarkerFaceColor', colors(i, :) , 'Color', colors(i, :), 'MarkerSize', 3);
     end
 
     xlim(cfg.xlim)
@@ -86,6 +87,11 @@ if cfg.plotting
     ylabel('Mean decoding accuracy');
     legend(h, cfg.categories, 'Location', 'best');
     title(sprintf('Mean pairwise decoding accuracy\n with FDR-corrected significant time points'));
+
+
+    set(gca, 'LineWidth', 1, 'FontName', cfg.FontName, 'FontSize', cfg.FontSize, 'FontWeight', 'bold');
+    set(gca, 'box', 'off');
+
 
     % save figure
     if cfg.saving
