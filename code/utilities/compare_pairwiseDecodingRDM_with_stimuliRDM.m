@@ -16,6 +16,14 @@ cfg.ISC_type = 'pairRep';
 timepoints = d.pairRep.included_time;
 stimuli = struct;
 stimuli.all =struct;
+for pr = cfg.predictor_RDMs
+    pred = char(pr);
+    stimuli.all.(pred) = struct;
+    for c=cfg.categories
+        category = char(c);
+        stimuli.all.(pred).(category) = nan(cfg.n, numel(d.(cfg.ISC_type).included_time));
+    end
+end
 
 
 % loop through subjects
@@ -26,10 +34,10 @@ for iSub = 1:length(cfg.subNums)
     subID = ['sub', num2str(cfg.subNums(iSub))];
     stimuli.(subID)= struct;
 
-    for cat = cfg.categories
-        cat = char(cat);
+    for c = cfg.categories
+        category = char(c);
 
-        stimuli.(subID).(cat) = nan(numel(cfg.RDM_to_partial_out), numel(d.(cfg.ISC_type).included_time));
+        stimuli.(subID).(category) = nan(numel(cfg.RDM_to_partial_out), numel(d.(cfg.ISC_type).included_time));
 
         % get canditate/predictor RDMs
         RDMs = struct;
@@ -37,13 +45,13 @@ for iSub = 1:length(cfg.subNums)
         RDMs(1).color = [0 0 0];
         RDMs(1).RDM = d.pairRep.(['sub', num2str(cfg.subNums(iSub))]).rdm; % (:, :, 1);
         labels = {RDMs.name};
-        [RDMs, cfg.labels] = evaluate_predictor_RDMs(d, RDMs, labels, cfg, cat);
-        %stimuli_RDM = d.DNN.vgg16_imagenet.stimuli.(cat).all_images.RDM;
+        [RDMs, cfg.labels] = evaluate_predictor_RDMs(d, RDMs, labels, cfg, category);
+        %stimuli_RDM = d.DNN.vgg16_imagenet.stimuli.(category).all_images.RDM;
 
         for iTp=1:length(timepoints)
 
             % get time point RDM
-            if strcmp(cat, 'bathroom')
+            if strcmp(category, 'bathroom')
                 RDMs(1).RDM = d.pairRep.(['sub', num2str(cfg.subNums(iSub))]).rdm(1:50, 1:50, iTp);
             else
                 RDMs(1).RDM = d.pairRep.(['sub', num2str(cfg.subNums(iSub))]).rdm(51:100, 51:100, iTp);
@@ -56,25 +64,15 @@ for iSub = 1:length(cfg.subNums)
             end
 
             % save results
-            stimuli.(subID).(cat)(:, iTp) = rMat(2:end, 1);
+            stimuli.(subID).(category)(:, iTp) = rMat(2:end, 1);
         end % tp
-
-        if iSub == 1
-
-            for pred = cfg.predictor_RDMs
-                pred = char(pred);
-                if strcmp(cat, cfg.categories{1})
-                    stimuli.all.(pred) = struct;
-                end
-                stimuli.all.(pred).(cat) = nan(cfg.n, numel(d.(cfg.ISC_type).included_time));
-            end
-        end
-
+ 
         for j = 1:length(cfg.predictor_RDMs)
             pred = char(cfg.predictor_RDMs{j});
-            stimuli.all.(pred).(cat)(iSub,:) = stimuli.(subID).(cat)(j,:);
+            stimuli.all.(pred).(category)(iSub,:) = stimuli.(subID).(category)(j,:);
         end
-    end% cat
+
+    end% category
 end % sub
 
 end
