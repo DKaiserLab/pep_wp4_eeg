@@ -3,7 +3,6 @@ function plot_corr_sig(cfg, d, pval, save_name)
 % evaluate input
 if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 10; end
 if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.1, 0.1]; end
-if ~isfield(cfg, 'tfce'); cfg.tfce = false; end
 
 % create figure and layout
 fig = figure;
@@ -38,9 +37,7 @@ for category = cfg.categories
         elseif isfield(pval, 'FDR')
             sigMat(ntp_before_stim+1:end) = pval.FDR.(category)(var,:);
         elseif isfield(pval, 'cluster')
-            if cfg.tfce
-                sigMat(ntp_before_stim+1:end) = pval.cluster.(category){var}.pvals <= cfg.alpha;
-            elseif ~isempty(pval.cluster.(category){var}.obs_cluster_stats)
+           if ~isempty(pval.cluster.(category){var}.obs_cluster_stats)
                 for p=1:length(pval.cluster.(category){var}.pvals_cluster)
                     if pval.cluster.(category){var}.pvals_cluster(p) <= cfg.alpha
                         idx = pval.cluster.(category){var}.obs_clusters.PixelIdxList{p} + ntp_before_stim ;
@@ -114,9 +111,7 @@ for var = 1:numel(cfg.RDM_to_partial_out)
     elseif isfield(pval, 'FDR')
         sigMat(ntp_before_stim+1:end) = pval.FDR.all(var,:);
     elseif isfield(pval, 'cluster')
-        if cfg.tfce
-            sigMat(ntp_before_stim+1:end) = pval.cluster.all{var}.pvals <= cfg.alpha;
-        elseif ~isempty(pval.cluster.all{var}.obs_cluster_stats)
+        if ~isempty(pval.cluster.all{var}.obs_cluster_stats)
             for p=1:length(pval.cluster.all{var}.pvals_cluster)
                 if pval.cluster.all{var}.pvals_cluster(p) <= cfg.alpha
                     idx = pval.cluster.all{var}.obs_clusters.PixelIdxList{p} + ntp_before_stim ;
