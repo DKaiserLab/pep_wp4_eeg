@@ -4,10 +4,13 @@ function cluster_stats = stats_cluster(r_obs, perm_corrs, cfg, d)
 if ~isfield(cfg,'alpha'); cfg.alpha = 0.05;end
 if ~isfield(cfg,'min_cluster_size'); cfg.min_cluster_size = 3; end
 if ~isfield(cfg,'plot_treshhold'); cfg.plot_treshhold = false; end
-if size(r_obs,1) == 1
+if size(r_obs,1) == 1 % r_obs has to be [ntimepoints × 1]
     r_obs = r_obs(:);
 end
 
+if size(perm_corrs,2) ~= cfg.n_permutations % perm_corrs has to be [ntimepoints × n_permutations]
+    error('wrong format')
+end
 % define parameters
 thresh_per_tp = prctile(perm_corrs, 100*(1-cfg.alpha), 2);
 above_thresh = r_obs(:) > thresh_per_tp(:);

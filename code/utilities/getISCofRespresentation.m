@@ -1,22 +1,32 @@
 function d = getISCofRespresentation(cfg, d)
-
-% evaluate input
 if ~isfield(cfg, 'plot_sem'); cfg.plot_sem = true;end
+if ~isfield(cfg, 'correlation_type'); cfg.correlation_type = 'Spearman';end
+if ~isfield(cfg, 'save_name'); cfg.save_name = 'compare_tp_RDMs_to_stimuli_RDMs';end
+if ~isfield(cfg, 'alpha'); cfg.alpha = 0.05;end
+if ~isfield(cfg, 'n_permutations'); cfg.n_permutations = 5000;end
+if ~isfield(cfg, 'permutationtest'); cfg.permutationtest = false;end
+if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 1;end
 
-cfg.timepoints = d.pairRep.included_time;
-cfg.all_timepoints = d.pairRep.all_time;
 
-% get number of time points
-ntimepoints=numel(cfg.timepoints);
-first_pos_tp = find(cfg.all_timepoints(cfg.timepoints)>=0, 1, 'first');
-
-plot_rdm2 = cfg.plot_rdm;
+%first_pos_tp = find(d.pairRep.all_time(d.pairRep.included_time)>=0, 1, 'first');
 cfg.plot_rdm = false;
+ntimepoints= length(d.pairRep.included_time);
+n = cfg.n;
+rng(1);
+signs_all = randi([0 1], n, cfg.n_permutations)*2 - 1;
+null_distrib = struct;
+d.ISC.stats = struct;
+d.ISC.stats.cluster = struct;
+
+if isempty(gcp('nocreate'))
+    parpool(8);
+end
 
 % loop through categories
 for cate_num = 1:numel(cfg.categories)
     category = char(cfg.categories{cate_num});
-
+    null_distrib.(category) = nan(ntimepoints, cfg.n_permutations);
+    d.ISC.stats.cluster.(category) = struct;
     % loop through time points
     for tp=1:ntimepoints
 
@@ -44,15 +54,6 @@ for cate_num = 1:numel(cfg.categories)
         end
 
         % make IS-RDM
-        if tp >= first_pos_tp && plot_rdm2
-            cfg.plot_rdm = true;
-            if ismember(tp, first_pos_tp + [0 25 50 75 100])
-                figure('position',[1,1,1000,600], 'unit','centimeters');
-                tiledlayout(5, 5);
-            end
-            sgtitle('ISC');
-            nexttile;
-        end
         [~, mat_out, ~] = make_RDM(RDMmat, cfg);
         if cfg.dissimilarity
             median_mat_out = 1 - mat_out;
@@ -62,8 +63,21 @@ for cate_num = 1:numel(cfg.categories)
 
         % take median and standard error
         median_mat_out(eye(size(median_mat_out)) == 1) = 0;
-        medianISC = median(squareform(median_mat_out), 'omitnan');
+        medianISC = median(squareform(median_mat_out), 'omitnan'); % median VZ-permutieren, ganze zeile+spalte
         seISC = std(squareform(median_mat_out), 'omitnan') / sqrt(length(squareform(median_mat_out)));
+
+        if cfg.permutationtest
+            perm_median = nan(1, cfg.n_permutations);
+            parfor perm = 1:cfg.n_permutations
+                signs = signs_all(:,perm);
+                signs_mat = diag(signs)
+                perm_median_mat_out = signs_mat * median_mat_out * signs_mat;
+                perm_medianISC = median(squareform(perm_median_mat_out), 'omitnan');
+                perm_median(perm) = perm_medianISC;
+            end
+            null_distrib.(category)(tp,:) = perm_median;
+        end
+        
 
         % store in structure
         d.ISC.([category,'_RDM']).pairRep(tp).RDM = mat_out;
@@ -73,7 +87,13 @@ for cate_num = 1:numel(cfg.categories)
         d.ISC.medianISC_SE.(category).pairRep(tp) = seISC;
 
     end % time point
+    if cfg.permutationtest
+        d.ISC.stats.cluster.(category) = stats_cluster(d.ISC.medianISC.(category).pairRep, null_distrib.(category), cfg, d);
+    end
 end % category
+
+
+
 
 %% plotting
 if cfg.plotting
@@ -86,23 +106,42 @@ if cfg.plotting
     
     c = lines(numel(cfg.categories));
     x = d.pairRep.all_time(d.pairRep.included_time);
-
+    h = gobjects(1, length(cfg.categories));
+    max_ISC = round(max([d.ISC.medianISC.bathroom.pairRep, d.ISC.medianISC.kitchen.pairRep]), 2);
+    min_ISC = round(min([d.ISC.medianISC.bathroom.pairRep, d.ISC.medianISC.kitchen.pairRep]), 2);
     fig=figure;
     hold on;
 
     for i=1:length(cfg.categories)
-        y = d.ISC.medianISC.(cfg.categories{i}).pairRep;
-        se = d.ISC.medianISC_SE.(cfg.categories{i}).pairRep;
+        category = cfg.categories{i};
+        %y = d.ISC.medianISC.(category).pairRep;
+        y = smoothdata(d.ISC.medianISC.(category).pairRep,'movmean', cfg.smoothing_window);
+        se = d.ISC.medianISC_SE.(category).pairRep;
+
+        % plot median ISC
+        h(i)=plot(x, y, 'color', c(i, :), 'LineWidth', 2);
         if cfg.plot_sem
             x2 = [x, fliplr(x)];
             inBetween_bath = [y+ se, fliplr(y - se)];
             fill(x2, inBetween_bath, c(i, :), 'FaceAlpha', 0.2, 'EdgeColor', 'none');
-            hold on;
+            %hold on;
+        end
+        
+        sigMat = false(1, ntimepoints);
+        if ~isempty(d.ISC.stats.cluster.(category).obs_cluster_stats)
+            for p=1:length(d.ISC.stats.cluster.(category).pvals_cluster)
+                if d.ISC.stats.cluster.(category).pvals_cluster(p) <= cfg.alpha
+                    idx = d.ISC.stats.cluster.(category).obs_clusters.PixelIdxList{p};
+                    sigMat(idx)=1;
+                end
+            end
         end
 
-        % plot median ISC
-        h(i)=plot(x, y, 'color', c(i, :), 'LineWidth', 2);
-        hold on;
+        if cfg.permutationtest
+            pos = max_ISC + i*0.002;
+            plot(x(sigMat), repmat(pos, 1, sum(sigMat)), ...
+                'color', c(i, :), 'marker' ,'O', 'MarkerFaceColor', c(i, :) ,'MarkerSize', 5, 'LineStyle','none');
+        end
     end
 
     set(gca, 'box', 'off');
@@ -110,6 +149,7 @@ if cfg.plotting
     xlabel('Time (s)');
     ylabel('Median ISC');
     xlim([min(x)-min(x)-0.2, max(x)+0.01])
+    ylim([min_ISC, max_ISC+0.006]);
     xline(0, '--k');  % Mark stimulus onset
     title('ISC of representation');
     legend(h, cfg.categories);
@@ -122,4 +162,9 @@ if cfg.plotting
     end
 
 end
+
+if ~isempty(gcp('nocreate'))
+    delete(gcp('nocreate'));
+end
+
 end
