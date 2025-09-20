@@ -1,4 +1,5 @@
 function d = getISCofRespresentation(cfg, d)
+
 if ~isfield(cfg, 'plot_sem'); cfg.plot_sem = true;end
 if ~isfield(cfg, 'correlation_type'); cfg.correlation_type = 'Spearman';end
 if ~isfield(cfg, 'save_name'); cfg.save_name = 'compare_tp_RDMs_to_stimuli_RDMs';end
@@ -6,27 +7,30 @@ if ~isfield(cfg, 'alpha'); cfg.alpha = 0.05;end
 if ~isfield(cfg, 'n_permutations'); cfg.n_permutations = 5000;end
 if ~isfield(cfg, 'permutationtest'); cfg.permutationtest = false;end
 if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 1;end
-
-
-%first_pos_tp = find(d.pairRep.all_time(d.pairRep.included_time)>=0, 1, 'first');
 cfg.plot_rdm = false;
-ntimepoints= length(d.pairRep.included_time);
-n = cfg.n;
-rng(1);
-signs_all = randi([0 1], n, cfg.n_permutations)*2 - 1;
-null_distrib = struct;
-d.ISC.stats = struct;
-d.ISC.stats.cluster = struct;
 
-if isempty(gcp('nocreate'))
-    parpool(8);
+ntimepoints= length(d.pairRep.included_time);
+
+% prepare permutation test
+if cfg.permutationtest
+    rng(1);
+    signs_all = randi([0 1], n, cfg.n_permutations)*2 - 1;
+    null_distrib = struct;
+    d.ISC.stats = struct;
+    d.ISC.stats.cluster = struct;
+
+    for cate_num = 1:numel(cfg.categories)
+        category = char(cfg.categories{cate_num});
+        null_distrib.(category) = nan(ntimepoints, cfg.n_permutations);
+        d.ISC.stats.cluster.(category) = struct;
+    end
+
 end
 
 % loop through categories
 for cate_num = 1:numel(cfg.categories)
     category = char(cfg.categories{cate_num});
-    null_distrib.(category) = nan(ntimepoints, cfg.n_permutations);
-    d.ISC.stats.cluster.(category) = struct;
+
     % loop through time points
     for tp=1:ntimepoints
 
@@ -67,6 +71,11 @@ for cate_num = 1:numel(cfg.categories)
         seISC = std(squareform(median_mat_out), 'omitnan') / sqrt(length(squareform(median_mat_out)));
 
         if cfg.permutationtest
+
+            if isempty(gcp('nocreate'))
+                parpool(8);
+            end
+
             perm_median = nan(1, cfg.n_permutations);
             parfor perm = 1:cfg.n_permutations
                 signs = signs_all(:,perm);
@@ -78,7 +87,6 @@ for cate_num = 1:numel(cfg.categories)
             null_distrib.(category)(tp,:) = perm_median;
         end
         
-
         % store in structure
         d.ISC.([category,'_RDM']).pairRep(tp).RDM = mat_out;
         d.ISC.([category,'_RDM']).pairRep(tp).color = [0, 0, 0];
@@ -127,17 +135,17 @@ if cfg.plotting
             %hold on;
         end
         
-        sigMat = false(1, ntimepoints);
-        if ~isempty(d.ISC.stats.cluster.(category).obs_cluster_stats)
-            for p=1:length(d.ISC.stats.cluster.(category).pvals_cluster)
-                if d.ISC.stats.cluster.(category).pvals_cluster(p) <= cfg.alpha
-                    idx = d.ISC.stats.cluster.(category).obs_clusters.PixelIdxList{p};
-                    sigMat(idx)=1;
+        if cfg.permutationtest
+            sigMat = false(1, ntimepoints);
+            if ~isempty(d.ISC.stats.cluster.(category).obs_cluster_stats)
+                for p=1:length(d.ISC.stats.cluster.(category).pvals_cluster)
+                    if d.ISC.stats.cluster.(category).pvals_cluster(p) <= cfg.alpha
+                        idx = d.ISC.stats.cluster.(category).obs_clusters.PixelIdxList{p};
+                        sigMat(idx)=1;
+                    end
                 end
             end
-        end
 
-        if cfg.permutationtest
             pos = max_ISC + i*0.002;
             plot(x(sigMat), repmat(pos, 1, sum(sigMat)), ...
                 'color', c(i, :), 'marker' ,'O', 'MarkerFaceColor', c(i, :) ,'MarkerSize', 5, 'LineStyle','none');
