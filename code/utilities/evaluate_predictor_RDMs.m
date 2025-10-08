@@ -114,19 +114,19 @@ for rdm_num = 1:numel(cfg.predictor_RDMs)
             rdm_index = 1;
             RDMs(end + 1).RDM = d.DNN.(dnn).stimuli.(category).all_images(rdm_index).RDM;
             RDMs(end).color = RDMs(end-1).color;
-            RDMs(end).name = ['stimuli_', category];
+            RDMs(end).name = ['stimuli_', category, '_early'];
             labels{end + 1} = cfg.predictor_RDMs{rdm_num};
-        elseif strcmp('stimuli_mid', cfg.predictor_RDMs{rdm_num})
+        elseif strcmp('stimuli_intermediate', cfg.predictor_RDMs{rdm_num})
             rdm_index = ceil(length(d.DNN.(dnn).stimuli.(category).all_images)/2);
             RDMs(end + 1).RDM = d.DNN.(dnn).stimuli.(category).all_images(rdm_index).RDM;
             RDMs(end).color = RDMs(end-1).color;
-            RDMs(end).name = ['stimuli_', category];
+            RDMs(end).name = ['stimuli_', category, '_mid'];
             labels{end + 1} = cfg.predictor_RDMs{rdm_num};
         elseif strcmp('stimuli_late', cfg.predictor_RDMs{rdm_num})
             rdm_index = length(d.DNN.(dnn).stimuli.(category).all_images);
             RDMs(end + 1).RDM = d.DNN.(dnn).stimuli.(category).all_images(rdm_index).RDM;
             RDMs(end).color = RDMs(end-1).color;
-            RDMs(end).name = ['stimuli_', category];
+            RDMs(end).name = ['stimuli_', category, '_late'];
             labels{end + 1} = cfg.predictor_RDMs{rdm_num};
         end
     end

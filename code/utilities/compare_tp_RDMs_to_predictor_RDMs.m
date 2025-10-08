@@ -9,15 +9,16 @@ if ~isfield(cfg, 'partial_cor'); cfg.partial_cor = true;end
 if ~isfield(cfg, 'save_name'); cfg.save_name = 'compare_tp_RDMs_to_predictor_RDMs';end
 if ~isfield(cfg, 'xaxis_labels'); cfg.xaxis_labels = true;end
 if ~isfield(cfg, 'dnns'); cfg.dnns = {cfg.dnn};end
-%if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.3, 0.5];end
+if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.1, 0.1];end
+if ~isfield(cfg, 'xlim'); cfg.xlim = [-200, 500];end
 if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 6;end
 cfg.plot_rdm = false;
 cfg.ISC_type = 'pairRep';
 
 % prepare figure
 if cfg.plotting
-    legend_labels = {};
     plot_counter = 1;
+    p = gobjects(1, length(cfg.RDM_to_partial_out)*length(cfg.categories)+length(cfg.RDM_to_partial_out));
     fig = figure;
     fig.Position = [100 100 1000 500]; 
     hold on
@@ -66,7 +67,7 @@ for cate_num = 1:numel(cfg.categories)
 
     % plotting
     if cfg.plotting && cfg.partial_cor
-        x = d.pairRep.all_time(d.pairRep.included_time);
+        x = d.pairRep.all_time(d.pairRep.included_time)*1000;
 
         for var = 1:numel(cfg.RDM_to_partial_out)
 
@@ -85,11 +86,10 @@ for cate_num = 1:numel(cfg.categories)
 
             % plot line
             if strcmp(category, cfg.categories{1}) % bathroom
-                p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '--', 'LineWidth', 1);
+                p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '--', 'LineWidth', 1, 'DisplayName', [strrep(cfg.RDM_to_partial_out{var}, '_', '-'), ' ', category]);
             else % kitchen
-                p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', ':', 'LineWidth', 1);
+                p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', ':', 'LineWidth', 1, 'DisplayName', [strrep(cfg.RDM_to_partial_out{var}, '_', '-'), ' ', category]);
             end
-            legend_labels{plot_counter} = [strrep(cfg.RDM_to_partial_out{var}, '_', '-'), ' ', category];
             plot_counter = plot_counter+1;
         end
     end
@@ -114,9 +114,7 @@ if cfg.plotting && cfg.partial_cor
             clr = [.4, .9, 1];
         end
         % plot mean
-        p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '-', 'LineWidth', 3);
-
-        legend_labels{plot_counter} = [strrep(cfg.RDM_to_partial_out{var}, '_', '-'),' mean'];
+        p(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '-', 'LineWidth', 3, 'DisplayName', [strrep(cfg.RDM_to_partial_out{var}, '_', '-'),' mean']);
 
         if cfg.partial_cor
             ylabel(['Partial correlation [r]', newline]);
@@ -131,18 +129,17 @@ if cfg.plotting && cfg.partial_cor
 
     % add legend
     if cfg.add_legend
-        legend(p, legend_labels, 'Location','northeastoutside');
+        legend(p, 'Location','northeastoutside');
+        legend('boxoff');
     end
 
     title('Time-resolved correlation reference RDMs with predictors')
 
-    if isfield(cfg, 'ylim')
-        ylim(cfg.ylim)
-    end
-
+    ylim(cfg.ylim);
+    xlim(cfg.xlim);
     yline(0, '--', 'HandleVisibility', 'off');
     xline(0, '--','HandleVisibility', 'off');
-    xlabel('time');
+    xlabel('Time (ms)');
     set(gca, 'box', 'off');
 
     % saving
