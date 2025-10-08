@@ -95,13 +95,15 @@ if cfg.plot_rdm
     for tp = first_pos_tp:num_timepoints
         if ismember(tp, first_pos_tp + [25 50 75 100])
             if cfg.saving
+%                 cb = colorbar;
+%                 cb.Ticks = [0.5 0.55 0.6 0.65 ];
+%                 cb.Layout.Tile = 'east';
+%                 cb.Label.String = 'decoding accuracy [%]';
                 save_plot(fig, ['mean-pairwise-decoding-rdm', num2str(tp)], cfg.figPath);
             end
             fig = figure('position',[1,1,1000,600], 'unit','centimeters');
             tiledlayout(5, 5);
             sgtitle('Mean pairwise decoding accuracy per timepoint');
-            %         else
-            %             nexttile;
         end
 
         nexttile;
@@ -111,9 +113,17 @@ if cfg.plot_rdm
         alltpRDMs(:, tp) = reshape(tpRDM, [], 1);
 
         % plot RDM
-        imagesc(tpRDM, [0.50, 0.65])
-        colorbar;
-        title(timeseries(timepoints(tp)));    
+        imagesc(tpRDM, [0.50, 0.65]);
+        cb = colorbar;
+%         cb.Ticks = [0.5 0.55 0.6 0.65 ];
+%         cb.Layout.Tile = 'east';
+        cb.Label.String = 'decoding accuracy [%]';
+        cb.FontSize = 12;
+        xticks([]);
+        yticks([]);
+        axis off; % Achsen aus
+        title([num2str(timeseries(timepoints(tp))), ' ms']);
+
     end
     if cfg.saving
         save_plot(fig, 'mean-pairwise-decoding-rdm', cfg.figPath);

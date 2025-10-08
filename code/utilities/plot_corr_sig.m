@@ -3,32 +3,39 @@ function plot_corr_sig(cfg, d, pval, save_name)
 % evaluate input
 if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 10; end
 if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.1, 0.1]; end
+if ~isfield(cfg, 'xlim'); cfg.xlim = [-200, 500]; end
 
 % create figure and layout
 fig = figure;
-fig.Position = [100 100 1400 500]; 
+set(gcf, 'Units','centimeters', 'Position',[2 2 80 20]);
+%fig.Position = [100 100 1400 500];
 tiledlayout(1,2);
+
+% graphic parameters
+set(0, 'DefaultTextFontSize', cfg.FontSize);
+set(0, 'DefaultAxesFontSize', cfg.FontSize);
+set(0, 'DefaultTextFontName', cfg.FontName);
+set(0, 'DefaultAxesFontName', cfg.FontName);
+set(gcf, 'color', [1 1 1]);
 
 % prep time points and variables
 timepoints = d.pairRep.included_time;
 timeseries = d.pairRep.all_time;
-x = timeseries(timepoints);
-x_lim = ([min(x)-0.01, max(x)+0.01]);
-ntp_before_stim = length(d.pairRep.included_time) - length(d.stats.testedTime);
+x = timeseries(timepoints)*1000;
+ntp_before_stim = length(d.pairRep.included_time) - length(d.stats.ISC_RSA.testedTime);
 
-for category = cfg.categories
+for icat = 1:length(cfg.categories)
     nexttile;
     hold on;
-    category = char(category);
-    legend_labels = cell(1,3);
+    category = cfg.categories{icat};
     plot_counter = 1;
-    g = gobjects(1, length(cfg.RDM_to_partial_out)*length(cfg.categories));
+    g = gobjects(1, length(cfg.RDM_to_partial_out));
 
     for var = 1:length(cfg.RDM_to_partial_out)
 
         % smooth data
         y = d.resMat.partial_cor.(category)(var, :);
-        y = smoothdata(y, 2, 'movmean', cfg.smoothing_window);
+        y = smoothdata(y, 2, 'movmean', cfg.smoothing_window+5);
 
         sigMat = false(1,length(timepoints));
         % compute significant time points
@@ -60,39 +67,43 @@ for category = cfg.categories
         end
 
         % plot line
-        g(plot_counter) = plot(x, y, 'color', clr, 'LineWidth', 3);
+        g(plot_counter) = plot(x, y, 'color', clr, 'LineWidth', 5, 'DisplayName', [regexprep(cfg.RDM_to_partial_out{var}, "_.*", ""), ' ', category]);
 
         % mark signifikant time points
         pos = 0.1 - var*0.01;
         plot(x(sigMat), repmat(pos, 1, sum(sigMat)), ...
-            'color', clr, 'marker' ,'O', 'MarkerFaceColor', clr ,'MarkerSize', 5, 'LineStyle','none');
+            'color', clr, 'marker' ,'O', 'MarkerFaceColor', clr ,'MarkerSize', 7, 'LineStyle','none');
 
-        legend_labels{plot_counter} = [strrep(cfg.RDM_to_partial_out{var}, '_', '-'), ' ', category];
         plot_counter = plot_counter+1;
     end
 
 
-    xlim(x_lim);
+    xlim(cfg.xlim);
     ylim(cfg.ylim);
-    yline(0, '--')
-    xline(0, '--')
-    xlabel('time');
-    legend([g(1:plot_counter-1)], legend_labels, 'Location', 'best');
+    yline(0, '--', 'LineWidth', 2);
+    xline(0, '--', 'LineWidth', 2);
+    legend(g, 'Location', 'southeast');
+    legend('boxoff');
+    xlabel('Time (ms)');
+    if icat ==1; ylabel('Partial correlation'); end
     set(gca, 'box', 'off');
+    set(gca, 'FontWeight', 'bold', 'LineWidth', 2);
 
 end % category
 
-sgtitle('Time-resolved correlation ISC-RDM with predictors', 'FontSize', 18);
+sgtitle('Time-resolved IS-RSA', 'FontSize', cfg.FontSize+10, 'FontWeight', 'bold');
 hold off;
 save_plot(fig, ['corr_sig_', save_name], cfg.figPath)
 
+%% plot average across categories
 % create figure
 fig = figure;
-fig.Position = [100 100 1000 500]; 
+set(gcf, 'Units','centimeters', 'Position',[2 2 40 25]);
+%fig.Position = [100 100 1000 500]; 
+set(gcf, 'color', [1 1 1]);
 hold on;
 
 % prep time points and variables
-legend_labels = cell(1,3);
 plot_counter = 1;
 g = gobjects(1, length(cfg.RDM_to_partial_out));
 
@@ -133,33 +144,34 @@ for var = 1:numel(cfg.RDM_to_partial_out)
     end
 
     % plot mean
-    g(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '-', 'LineWidth', 3);
+    g(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '-', 'LineWidth', 5, ...
+        'DisplayName', regexprep(cfg.RDM_to_partial_out{var}, "_.*", ""));
 
     % mark signifikant time points
     pos = 0.1 - var*0.01;
     plot(x(sigMat), repmat(pos, 1, sum(sigMat)), ...
-        'color', clr, 'marker' ,'O', 'MarkerFaceColor', clr ,'MarkerSize', 5, 'LineStyle','none');
+        'color', clr, 'marker' ,'O', 'MarkerFaceColor', clr ,'MarkerSize', 7, 'LineStyle','none');
 
-    legend_labels{plot_counter} = [strrep(cfg.RDM_to_partial_out{var}, '_', '-'),' mean'];
     plot_counter = plot_counter + 1;
 end
 
 if cfg.partial_cor
-    ylabel(['Partial correlation [r]', newline]);
+    ylabel('Partial correlation');
 else
     ylabel([cfg.correlation_type, ' correlation [r]', newline]);
 end
 
-set(gca, 'LineWidth', 1, 'FontName', cfg.FontName, 'FontSize', cfg.FontSize, 'FontWeight', 'bold');
-ylim(cfg.ylim);
-xlim(x_lim);
-yline(0, '--');
-xline(0, '--');
-xlabel('time');
-legend([g(1:plot_counter-1)], legend_labels, 'Location', 'best');
-set(gca, 'box', 'off');
 
-sgtitle('Time-resolved correlation ISC-RDM with predictors', 'FontSize', 18);
+ylim(cfg.ylim);
+xlim(cfg.xlim);
+yline(0, '--', 'LineWidth', 2);
+xline(0, '--', 'LineWidth', 2);
+xlabel('Time (ms)');
+legend(g, 'Location', 'northeast');
+legend('boxoff');
+set(gca, 'box', 'off');
+%sgtitle('Time-resolved IS-RSA', 'FontSize', cfg.FontSize + 10, 'FontWeight', 'bold');
+set(gca, 'FontWeight', 'bold', 'LineWidth', 2);
 hold off;
 
 save_plot(fig, ['mean_corr_sig', save_name], cfg.figPath)
