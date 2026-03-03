@@ -133,9 +133,9 @@ for iTp = 1:n_tp
 
 end % tp
 
-if ~isempty(gcp('nocreate'))
-    delete(gcp('nocreate'));
-end
+% if ~isempty(gcp('nocreate'))
+%     delete(gcp('nocreate'));
+% end
 
 %% compute cluster and/or FDR
 
