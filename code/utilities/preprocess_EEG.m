@@ -1,9 +1,9 @@
 function preprocess_EEG(cfg)
 
 %% Define Parameters
-prestim=0.5;
+prestim=1;
 baseline=0.5;
-poststim=0.5;
+poststim=1;
 
 
 % enable fieldtrip functions
@@ -14,11 +14,12 @@ ft_defaults;
 %% Start for-loop
 for s=cfg.subNums% for each subject
 
-    %% Specify input file
+    %% Specify input and output file name
 
-    fileName = fullfile(cfg.sourcedataPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '.eeg']);
+    fileNameIn = fullfile(cfg.sourcedataPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '.eeg']);
+    fileNameOut = fullfile(cfg.outputPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock_reref_s2.mat']);
 
-    if exist(fullfile(cfg.outputPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w.mat']), 'file')
+    if exist(fileNameOut, 'file')
         disp(['Pre-processed data for ', ['sub-', num2str(s)], ' exist already', newline]);
         continue
     end
@@ -26,7 +27,7 @@ for s=cfg.subNums% for each subject
     %% Define Events
 
     cfg_temp=[];
-    cfg_temp.dataset=fileName;
+    cfg_temp.dataset=fileNameIn;
     cfg_temp.trialdef.eventtype='Stimulus';
 
     cfg_temp.trialdef.prestim=prestim;
@@ -123,10 +124,10 @@ for s=cfg.subNums% for each subject
 
     %% transform to "timelocked" data and save the output
     cfg_temp=[];
-    cfg_temp.outputfile = fullfile(output_path, ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w']);
+    cfg_temp.outputfile = fileNameOut;
     cfg_temp.keeptrials='yes';
     timelock = ft_timelockanalysis(cfg_temp, data);
-    save(fullfile(output_path, ['PEP_WP4_EEG', num2str(s), '_timelock_reref_w']),'timelock');
+    save(fileNameOut,'timelock');
     
     % if you want: display the data
     %ft_databrowser(cfg,data);

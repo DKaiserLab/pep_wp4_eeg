@@ -3,7 +3,7 @@ function [res, meanAcc, cfg] = PairwiseTPLDAclassifier(cfg)
 % evaluate input
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
 if ~isfield(cfg, 'pca'); cfg.pca = false; end
-if ~isfield(cfg, 'frequencies'); cfg.frequencies = {'all'}; end
+if ~isfield(cfg, 'frequencies'); cfg.frequencies = {'full'}; end
 if ~isfield(cfg, 'decoding_start'); cfg.decoding_start = -0.2; end
 if ~isfield(cfg, 'decoding_end'); cfg.decoding_end = 0.5; end
 if ~isfield(cfg, 'makeBetweenComparison'); cfg.makeBetweenComparison = false; end
@@ -13,6 +13,7 @@ if cfg.nTrials2average ~= 1 && mod(cfg.nTrials2average, 2) ~= 0
     error('nTrials2average must be 1 or a even number')
 end
 if ~isfield(cfg, 'nBlocks'); cfg.nBlocks = 20; end
+
 
 % Define classifiers
 classifier = @cosmo_classify_lda;
@@ -24,17 +25,16 @@ cfg.frqBands.gamma = [31, 70];
 
 % loop over frequency bands
 for frq = 1:length(cfg.frequencies)
+    frqBand = cfg.frequencies{frq};
 
     % get filename
     freqTag = [];
-    if ~strcmp(cfg.frequencies{frq}, 'all')
-        freqTag = ['_', cfg.frequencies{frq}];
+    if ~strcmp(frqBand, 'full')
+        freqTag = ['_', frqBand];
     end
 
     avgTag = [];
-    if cfg.nTrials2average == 1
-        avgTag = '_w';
-    elseif cfg.nTrials2average > 1
+    if cfg.nTrials2average > 1
         avgTag = '_avg';
     end
 
@@ -66,21 +66,29 @@ for frq = 1:length(cfg.frequencies)
             disp(['Starting pairwise decoding for subject ',  subID]);
 
             % get preprocessed data
-            if strcmp(cfg.frequencies{frq}, 'all')
+            if strcmp(frqBand, 'full')
                 filepath = fullfile(cfg.outputPath, ['sub-', num2str(cfg.subNums(iSub))], 'eeg',...
-                    ['PEP_WP4_EEG', num2str(cfg.subNums(iSub)), '_timelock_reref_w', '.mat']);
+                    ['PEP_WP4_EEG', num2str(cfg.subNums(iSub)), '_timelock_reref_s2', '.mat']);
             else
-                currentBand = cfg.frqBands.(cfg.frequencies{frq});
+                currentBand = cfg.frqBands.(frqBand);
                 filepath = fullfile(cfg.outputPath, ['sub-', num2str(cfg.subNums(iSub))], 'eeg',...
                     ['PEP_WP4_EEG', num2str(cfg.subNums(iSub)), '_tfa', '.mat']);
             end
             load(filepath);
 
             %convert to cosmo
-            if ~strcmp(cfg.frequencies{frq}, 'all')
+            if ~strcmp(frqBand, 'full')
                 timelock = tf; clear tf
             end
             ds=cosmo_meeg_dataset(timelock);
+
+            % freq band for decoding
+            if ~strcmp(frqBand, 'full')
+
+                % filter current frequency band
+                filt_band = (ds.fa.freq >= currentBand(1)) & (ds.fa.freq <= currentBand(2));
+                ds = cosmo_slice(ds, filt_band, 2);
+            end
 
             % check if data set is complete
             if height(ds.samples) == cfg.nTrials*cfg.nBlocks
@@ -100,21 +108,13 @@ for frq = 1:length(cfg.frequencies)
                 ds = makeChunkForIncompleteDS(ds, cfg, iSub);
             end
 
-            % freq band for decoding
-            if ~strcmp(cfg.frequencies{frq}, 'all')
-
-                % filter current frequency band
-                filt_band = (ds.fa.freq >= currentBand(1)) & (ds.fa.freq <= currentBand(2));
-                ds = cosmo_slice(ds, filt_band, 2);
-            end
-
             % time range for decoding
             timepoints = find(timelock.time >= cfg.decoding_start &...
                 timelock.time <= cfg.decoding_end);
 
             %get time info
-            res.all_time=timelock.time;
-            res.included_time=timepoints;
+            all_time=timelock.time;
+            included_time=timepoints;
             clear timelock %new
 
             %% Pairwise decoding
@@ -126,10 +126,12 @@ for frq = 1:length(cfg.frequencies)
             % remove nans
             ds = cosmo_remove_useless_data(ds);
 
+            dispstat('','init')
             for tp=1:length(timepoints)%1:max(ds.fa.time)
-                if tp == 2
-                    test = 1;
-                end 
+
+                if mod(tp/length(timepoints), 0.1) < 0.01
+                    dispstat(['TP ', num2str(tp), ' out of ', num2str(length(timepoints))])
+                end
 
                 % select time point
                 tp_idx = timepoints(tp);
@@ -137,17 +139,17 @@ for frq = 1:length(cfg.frequencies)
 
                 if cfg.pca
                     % do PCA
-                    [ds_pca, ~] = cosmo_map_pca(ds_tp, 'pca_explained_count', 30);
+                    [ds_pca, ~] = cosmo_map_pca(ds_tp, 'pca_explained_count', 30, 'max_feature_count', 5000);
                     ds_tp.samples = ds_pca.samples;
                     ds_tp.fa = ds_pca.fa;
                     ds_tp.a = ds_pca.a;
                 end
 
-                %             if isempty(gcp('nocreate'))
-                %                 parpool(8);
-                %             end
+                if isempty(gcp('nocreate'))
+                    parpool(10);
+                end
                 nTrials = cfg.nTrials;
-                for stim1 = 1:nTrials
+                parfor stim1 = 1:nTrials
                     for stim2 = 1:nTrials
                         if ~(stim2 > stim1)
                             continue
@@ -187,13 +189,14 @@ for frq = 1:length(cfg.frequencies)
             end % tp
 
             % Save decoding resultst
-            save(fileName, "rdm", "mean_accuracy")
+            save(fileName, "rdm", "mean_accuracy", "all_time", "included_time")
 
         end
 
         % Write RDM to struct
-        res.(subID2).rdm = rdm;
-        res.(subID2).mean_accuracy = mean_accuracy;
+        res.(subID2).(frqBand).rdm = rdm;
+        res.(subID2).(frqBand).mean_accuracy = mean_accuracy;
+
 
     end % sub
 
@@ -201,15 +204,15 @@ for frq = 1:length(cfg.frequencies)
         category = char(cfg.categories{cate_num});
 
         % preallocate
-        meanAcc_temp = nan(length(res.included_time), cfg.n);
+        meanAcc_temp = nan(length(included_time), cfg.n);
 
-        for tp=1:length(res.included_time)
+        for tp=1:length(included_time)
             for iSub = 1:length(cfg.subNums)
                 subID = sprintf('sub-%0.3d', cfg.subNums(iSub));
                 subID2 = strrep(subID, '-', '');
 
                 % make a matrix with vectorized RDMs
-                rdm = squeeze(res.(subID2).rdm(:,:,tp));
+                rdm = squeeze(res.(subID2).(frqBand).rdm(:,:,tp));
                 rdm(eye(size(rdm)) == 1) = 0;
 
                 % filter for category
@@ -222,27 +225,26 @@ for frq = 1:length(cfg.frequencies)
                 meanAcc_temp(tp, iSub) = mean(squareform(rdm), 'omitnan');
 
             end
-            meanAcc.(category) = meanAcc_temp;
+
         end
+        % store in struct
+        meanAcc.(category).(frqBand) = meanAcc_temp;
+
+
     end
 
-    res.nTrials2average = cfg.nTrials2average;
-    res.pca = cfg.pca;
-    if cfg.pca; res.var_threshold = cfg.var_threshold;end
+    % store info in res
+    res.(frqBand).included_time = included_time;
+    res.(frqBand).all_time = all_time;
+    res.(frqBand).nTrials2average = cfg.nTrials2average;
+    res.(frqBand).pca = cfg.pca;
 
     % save results
     outputFolder = fullfile(cfg.outputPath, 'group_level', 'RDM');
     if ~exist(outputFolder, 'dir')
         mkdir(outputFolder);
     end
-    save(fileName, 'res')
+    save(fullfile(outputFolder, 'newDecoding'), 'res')
 
-    if ~isempty(gcp('nocreate'))
-        delete(gcp('nocreate'));
-    end
-
-    if cfg.plotting
-        PairwiseDecodingPlots(cfg, res);
-    end
 end
 end

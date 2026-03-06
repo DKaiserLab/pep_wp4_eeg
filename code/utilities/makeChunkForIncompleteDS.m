@@ -41,12 +41,12 @@ if cfg.subNums(iSub) == 114
         ds = cosmo_average_samples(ds, 'targets', ds.sa.targets, 'chunks', ds.sa.chunks);
 
     else
-        waring('Find solution for this subject and this trial averaging condition')
+        warning('Find solution for this subject and this trial averaging condition')
 
     end
 
 
 else
-    waring('Find solution for this subject')
+    warning('Find solution for this subject')
 end
 end

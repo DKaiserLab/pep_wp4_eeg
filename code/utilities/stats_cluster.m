@@ -1,4 +1,4 @@
-function cluster_stats = stats_cluster(r_obs, perm_corrs, cfg, d)
+function cluster_stats = stats_cluster(r_obs, perm_corrs, cfg, d, frqBand)
 
 % evaluate input
 if ~isfield(cfg,'alpha'); cfg.alpha = 0.05;end
@@ -64,8 +64,8 @@ cluster_stats.perm_max_cluster = perm_max_cluster;
 
 if cfg.plot_treshhold
     figure; hold on;
-    ntp_before_stim = length(d.pairRep.included_time) - length(d.stats.testedTime);
-    x = d.pairRep.all_time(d.pairRep.included_time);
+    ntp_before_stim = length(d.pairRep.(frqBand).included_time) - length(d.stats.(frqBand).testedTime);
+    x = d.pairRep.(frqBand).all_time(d.pairRep.(frqBand).included_time);
     x = x(ntp_before_stim+1:end);
     plot(x, r_obs, 'b-', 'LineWidth', 1.5);           % observed correlations
     plot(x, thresh_per_tp, 'r--', 'LineWidth', 1.2);  % treshhold for each timepoint
