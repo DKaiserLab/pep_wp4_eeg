@@ -2,7 +2,7 @@ function cluster_stats = stats_cluster(r_obs, perm_corrs, cfg, d, frqBand)
 
 % evaluate input
 if ~isfield(cfg,'alpha'); cfg.alpha = 0.05;end
-if ~isfield(cfg,'min_cluster_size'); cfg.min_cluster_size = 3; end
+if ~isfield(cfg,'min_cluster_size'); cfg.min_cluster_size = 1; end
 if ~isfield(cfg,'plot_treshhold'); cfg.plot_treshhold = false; end
 if size(r_obs,1) == 1 % r_obs has to be [ntimepoints × 1]
     r_obs = r_obs(:);
@@ -23,9 +23,9 @@ obs_cluster_stats = zeros(1, clusters.NumObjects); % init stats
 for c = 1:clusters.NumObjects
     obs_cluster_stats(c) = sum(r_obs(clusters.PixelIdxList{c})); % add correlations at given time points
 end
-perm_max_cluster = nan(1,cfg.n_permutations);
 
 % find biggest cluster in permutations
+perm_max_cluster = nan(1,cfg.n_permutations);
 for p = 1:cfg.n_permutations
     perm_stat = perm_corrs(:,p); % [timepoints x correlation], "correlation-distribution" over time
     

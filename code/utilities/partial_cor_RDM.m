@@ -2,16 +2,15 @@ function [RDM_plot, r_mat, p_mat, cfg] = partial_cor_RDM(cfg, RDMs)
 
 if ~isfield(cfg, 'RDM_to_partial_out'); cfg.RDM_to_partial_out = ...
         {'Typical Images vgg16_imagenet Late', 'Control Images vgg16_imagenet Late', 'Photos vgg16_imagenet Late'}; end % mat to regress out
-if ~isfield(cfg, 'partial_correlation_type'); cfg.partial_correlation_type = 'pearson';end
-if ~isfield(cfg, 'correlation_type'); cfg.correlation_type = 'spearman';end
+if ~isfield(cfg, 'correlation_type'); cfg.correlation_type = 'pearson';end
 if ~isfield(cfg, 'plot_rdm'); cfg.plot_rdm = 1;end
 
 % give RDM more comprehensive names
 for rdm_name = 1:numel({RDMs.name})
     RDMs(rdm_name).name = cfg.labels{rdm_name};
-    if ismember(cfg.labels{rdm_name}, cfg.RDM_to_partial_out)
-        cfg.labels{rdm_name} = ['*partial* ',cfg.labels{rdm_name}];
-    end
+%     if ismember(cfg.labels{rdm_name}, cfg.RDM_to_partial_out)
+%         cfg.labels{rdm_name} = ['*partial* ',cfg.labels{rdm_name}];
+%     end
 end
 
 % loop through RDMs of interest
@@ -62,7 +61,7 @@ for row = 1:numel({RDMs.name})
                 end
 
                 % get partial correlation
-                [rho,pval] =  partialcorr(vec_RDM1, vec_RDM2, other_partial_vectorized_RDMs, 'Tail','right','Type', cfg.partial_correlation_type);
+                [rho,pval] =  partialcorr(vec_RDM1, vec_RDM2, other_partial_vectorized_RDMs, 'Tail','right','Type', cfg.correlation_type);
                
 
             else

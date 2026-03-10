@@ -1,191 +1,139 @@
-function stats = stats_permutationtest(cfg, d)
+function [stats, r_vals] = stats_permutationtest(cfg, d)
 
 % evaluate input
 if ~isfield(cfg, 'RDM_to_partial_out'); cfg.RDM_to_partial_out = {'typical_late', 'control_late'}; end
 if ~isfield(cfg, 'correlation_type'); cfg.correlation_type = 'pearson'; end
 if ~isfield(cfg, 'partial_cor'); cfg.partial_cor = true; end
 if ~isfield(cfg, 'n_permutations'); cfg.n_permutations = 5000; end
-if ~isfield(cfg, 'alpha'); cfg.alpha = 0.05; end
 if ~isfield(cfg, 'cluster'); cfg.cluster = true; end
 if ~isfield(cfg, 'FDR'); cfg.FDR = true; end
+correlation_type = cfg.correlation_type;
+plottingPreds = 1;
 
 cfg.plot_rdm = false;
 cfg.ISC_type = 'pairRep';
 partial = cfg.partial_cor;
 
-n_tp = length(d.(cfg.ISC_type).included_time);
-pos_tp = d.pairRep.included_time(d.pairRep.all_time(d.pairRep.included_time)>=0);
-n_pos_tp = length(pos_tp);
-n_predictors = length(cfg.RDM_to_partial_out);
-n_sub = cfg.n;
-predictors = cfg.RDM_to_partial_out;
 
-%% init
-stats = struct;
-pvalMat = struct;
-pvalMat.twosided = struct;
-pvalMat.twosided.all = nan(n_predictors, n_pos_tp);
-pvalMat.onesided = struct;
-pvalMat.onesided.FDR = struct;
-pvalMat.onesided.FDR.all = nan(n_predictors, n_pos_tp);
-pvalMat.onesided.all = nan(n_predictors, n_pos_tp);
-sigMat = struct;
-sigMat.FDR = struct;
-sigMat.FDR.all = false(n_predictors, n_pos_tp);
+% loop over frequency bands
+for frq = 1:length(cfg.frequencies)
+    frqBand = cfg.frequencies{frq};
 
-r_obs_mean_all = nan(n_predictors, n_pos_tp); % save mean observed correlations for each predictor and tp
-perm_corrs_mean_all = nan(n_predictors, n_pos_tp, cfg.n_permutations); % save mean correlations of permutations for each predictor and tp
-r_obs_byCat = cell(length(cfg.categories),1); % save observed correlations for each predictor and tp
-perm_corrs_byCat = cell(length(cfg.categories),1); % save correlations of permutations for each predictor and tp
+    %% init
+    tps = d.(cfg.ISC_type).(frqBand).included_time;
+    n_tp = length(tps);
+    tp_vals = d.(cfg.ISC_type).(frqBand).all_time;
+    pos_tp = tps(tp_vals(tps) > 0);
+    n_neg_tp = n_tp - length(pos_tp);
+    n_predictors = length(cfg.RDM_to_partial_out);
+    n_sub = cfg.n;
+    all_preds = nan(nchoosek(cfg.n,2), length(cfg.RDM_to_partial_out));
 
-for c = 1:length(cfg.categories)
-    category = char(cfg.categories{c});
-    r_obs_byCat{c} = nan(n_predictors, n_pos_tp); % save observed correlations for each predictor and tp (and category)
-    perm_corrs_byCat{c} = nan(n_predictors, n_pos_tp, cfg.n_permutations); % save correlations of permutations for each predictor and tp (and category)
-    pvalMat.twosided.(category) = nan(n_predictors, n_pos_tp);
-    pvalMat.onesided.(category) = nan(n_predictors, n_pos_tp);
-    pvalMat.onesided.FDR.(category) = nan(n_predictors, n_pos_tp);
-    sigMat.FDR.(category) = false(n_predictors, n_pos_tp);
-end
+    r_obs = nan(n_tp, plottingPreds, length(cfg.categories));
+    perm_corrs = nan(n_tp, cfg.n_permutations , plottingPreds, length(cfg.categories));
 
-%% start test
-% create permutation matrix
-rng(1);
-perm_idx_mat = zeros(n_sub, cfg.n_permutations);
-for p = 1:cfg.n_permutations
-    perm_idx_mat(:,p) = randperm(n_sub);
-end
 
-if isempty(gcp('nocreate'))
-    parpool(8);
-end
-
-idx = 0;
-% loop tp
-for iTp = 1:n_tp
-    act_tp = d.pairRep.all_time(d.pairRep.included_time(iTp));
-
-    % do permutationtest only on time points after stimulus onset
-    if act_tp < 0
-        continue;
+    %% start test
+    % create permutation matrix
+    rng(1);
+    perm_idx_mat = zeros(n_sub, cfg.n_permutations);
+    for p = 1:cfg.n_permutations
+        perm_idx_mat(:,p) = randperm(n_sub);
     end
 
-    idx = idx + 1;
+    if isempty(gcp('nocreate'))
+        parpool(8);
+    end
 
     % loop cat
     for c = 1:length(cfg.categories)
-
         category = char(cfg.categories{c});
 
-        % init RDM
-        RDMs = struct;
-        RDMs(1).name = d.ISC.([category,'_RDM']).(cfg.ISC_type)(iTp).name;
-        RDMs(1).color = d.ISC.([category,'_RDM']).(cfg.ISC_type)(iTp).color;
-        RDMs(1).RDM = d.ISC.([category,'_RDM']).(cfg.ISC_type)(iTp).RDM;
-
+        % get predictors and regress out control predictors
+        RDMs = d.DNN.(cfg.dnn).control.(category).subject_mean(1);
         labels = {RDMs.name};
         [RDMs, cfg.labels] = evaluate_predictor_RDMs(d, RDMs, labels, cfg, category);
+        for iPred = 1:n_predictors
+            RDMs(iPred+1).RDM(eye(cfg.n) == 1) = 0;
+            all_preds(:, iPred) = squareform(RDMs(iPred+1).RDM);
+        end
+        X = [all_preds(:,2:end), ones(size(all_preds,1),1)];
+        b = X \ all_preds(:,1);
+        uniquePred = all_preds(:,1) - X*b;
 
-        r_obs_byCat{c}(:, idx) = d.resMat.partial_cor.(category)(:, iTp);
+        %% loop tp
+        dispstat('','init')
+        for iTp = 1:n_tp
+            act_tp = tp_vals(tps(iTp));
 
-        % init data storage
-        perm_corrs = nan(n_predictors, cfg.n_permutations);
-
-        % create permutations and compute correlations
-        parfor p = 1:cfg.n_permutations
-            perm_idx = perm_idx_mat(:,p);
-
-            RDMs_local = RDMs;
-            RDMs_local(1).RDM = RDMs(1).RDM(perm_idx, perm_idx);
-
-            if partial
-                [~, rMat_perm, ~] = partial_cor_RDM(cfg, RDMs_local);
-            else
-                [~, rMat_perm, ~] = cor_RDM(RDMs_local, cfg);
+            % progress report
+            if mod(iTp, 10) == 0
+                dispstat(['TP ', num2str(iTp), ' out of ', num2str(n_tp),...
+                    ' - ', category, ' - ', frqBand])
             end
-            perm_corrs(:, p) = rMat_perm(2:end, 1);
-        end
-        
-        perm_corrs_byCat{c}(:, idx, :) = perm_corrs;
-        
-        for v = 1:n_predictors
-            % compute and save p-values
-            pvalMat.twosided.(category)(v, idx) = mean(abs(perm_corrs(v,:)) >= abs(r_obs_byCat{c}(v, idx))); % two-sided
-            pvalMat.onesided.(category)(v, idx) = mean(perm_corrs(v,:) >= r_obs_byCat{c}(v, idx)); % one-sided;
-        end
 
+            % init RDM
+            eegRDM = d.ISC.([category,'_RDM']).(frqBand).(cfg.ISC_type)(iTp).RDM;
+            eegRDM(eye(size(eegRDM)) == 1) = 0;
+            r_obs(iTp, 1, c) = corr(squareform(eegRDM)', uniquePred, 'row', 'pairwise', 'type', correlation_type);
+
+
+            % do permutationtest only on time points after stimulus onset
+            if act_tp > 0
+
+                % create permutations and compute correlations
+                allPerms = nan(cfg.n_permutations, length(squareform(eegRDM)));
+                parfor p = 1:cfg.n_permutations
+
+                    % shuffle neural RDM
+                    RDM_shuffled = eegRDM(perm_idx_mat(:,p), perm_idx_mat(:,p));
+                    allPerms(p, :) = squareform(RDM_shuffled);
+                end
+                perm_corrs(iTp, :, 1, c) = corr(allPerms', uniquePred, 'row', 'pairwise', 'type', correlation_type);
+            end
+
+        end % tp
     end % category
 
-    vals = cellfun(@(x) x(:,idx), r_obs_byCat, 'UniformOutput', false);
-    r_obs_mean_all(:, idx) = mean(cat(2, vals{:}),2);
+    % take mean of categories 
+    r_obs_mean = mean(r_obs, 3);
+    perm_corrs_mean = mean(perm_corrs, 4);
 
-    for p = 1:cfg.n_permutations
-        vals = cellfun(@(x) x(:,idx,p), perm_corrs_byCat, 'UniformOutput', false);
-        perm_corrs_mean_all(:, idx, p) = mean(cat(2, vals{:}), 2);
+    %% stats
+
+    % p values
+    stats.(frqBand).p_vals = nan(size(r_obs_mean));
+    stats.(frqBand).ci = nan(length(r_obs_mean), 2);
+    for iTp = 1:length(r_obs_mean)
+
+        % only for postive time points
+        if tp_vals(tps(iTp)) > 0
+            stats.(frqBand).p_vals(iTp) = sum(perm_corrs_mean(iTp, :) >= r_obs_mean(iTp))/cfg.n_permutations; % p value (one sided)
+            stats.(frqBand).ci(iTp, 1) = prctile(perm_corrs_mean(iTp, :), 95); % upper ci
+            stats.(frqBand).ci(iTp, 2) = prctile(perm_corrs_mean(iTp, :), 5); % lower ci
+        end
     end
 
-
-    for v = 1:n_predictors
-        % compute and save p-values
-        pvalMat.twosided.all(v, idx) = mean(abs(perm_corrs_mean_all(v, idx, :)) >= abs(r_obs_mean_all(v, idx))); % two-sided;
-        pvalMat.onesided.all(v, idx) = mean(perm_corrs_mean_all(v, idx, :) >= r_obs_mean_all(v, idx)); % one-sided
-    end
-
-end % tp
-
-% if ~isempty(gcp('nocreate'))
-%     delete(gcp('nocreate'));
-% end
-
-%% compute cluster and/or FDR
-
-% separate for each model
-for v = 1:n_predictors
-    % FDR
-    if cfg.FDR
-        pvals = pvalMat.onesided.all(v,:);
-        [is_significant, ~, ~, adj_p] = fdr_bh(pvals, cfg.alpha, 'pdep', 'yes');
-        sigMat.FDR.all(v,:) = is_significant;
-        pvalMat.onesided.FDR.all(v,:) = adj_p;
-    end
+    % fdr correction
+    stats.(frqBand).fdr_p = nan(size(r_obs_mean));
+    noNan = ~isnan(stats.(frqBand).p_vals);
+    [~, ~, ~, stats.(frqBand).fdr_p(noNan)] = ...
+        fdr_bh(stats.(frqBand).p_vals(noNan));
 
     % cluster
-    if cfg.cluster
-        stats.cluster.all{v} = stats_cluster(r_obs_mean_all(v,:), ...
-            squeeze(perm_corrs_mean_all(v,:,:)), ...
-            cfg, d);
+    stats.(frqBand).cluster.all = stats_cluster(r_obs_mean, ...
+        squeeze(perm_corrs_mean), ...
+        cfg, d, frqBand);
+
+    stats.(frqBand).cluster_p = ones(size(r_obs_mean));
+    if ~isempty(d.stats.ISC_RSA.alpha.cluster.all.pvals_cluster)
+        cluster_points = stats.(frqBand).cluster.all.obs_clusters.PixelIdxList{:};
+        stats.(frqBand).cluster_p(n_neg_tp + cluster_points) = min(stats.(frqBand).cluster.all.pvals_cluster);
     end
 
+    % write to data struct
+    r_vals.(frqBand).r_obs_mean = r_obs_mean;
+
 end
-
-% separate for each model and category
-for c = 1:length(cfg.categories)
-    cat_name = cfg.categories{c};
-    
-    for v = 1:n_predictors
-        % FDR
-        if cfg.FDR
-            pvals = pvalMat.onesided.(cat_name)(v,:);
-            [is_significant, ~, ~, adj_p] = fdr_bh(pvals, cfg.alpha, 'pdep', 'yes');
-            sigMat.FDR.(cat_name)(v,:) = is_significant;
-            pvalMat.onesided.FDR.(cat_name)(v,:) = adj_p;
-        end
-
-        % cluster
-        if cfg.cluster
-            stats.cluster.(cat_name){v} = stats_cluster(r_obs_byCat{c}(v,:), ...
-                squeeze(perm_corrs_byCat{c}(v,:,:)), ...
-                cfg, d);
-        end
-    end
-end
-
-
-% save output
-stats.pvalMat = pvalMat;
-stats.predictors = predictors;
-stats.testedTime = pos_tp;
-stats.sigMat = sigMat;
-
 
 end
