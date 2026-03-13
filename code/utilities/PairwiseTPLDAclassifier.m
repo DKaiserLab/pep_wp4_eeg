@@ -3,6 +3,7 @@ function [res, meanAcc, cfg] = PairwiseTPLDAclassifier(cfg)
 % evaluate input
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
 if ~isfield(cfg, 'pca'); cfg.pca = false; end
+if ~isfield(cfg, 'zscore'); cfg.zscore = true; end
 if ~isfield(cfg, 'frequencies'); cfg.frequencies = {'full'}; end
 if ~isfield(cfg, 'decoding_start'); cfg.decoding_start = -0.2; end
 if ~isfield(cfg, 'decoding_end'); cfg.decoding_end = 0.5; end
@@ -126,10 +127,14 @@ for frq = 1:length(cfg.frequencies)
             % remove nans
             ds = cosmo_remove_useless_data(ds);
 
+            if cfg.zscore
+                ds = cosmo_normalize(ds, 'zscore');
+            end
+
             dispstat('','init')
             for tp=1:length(timepoints)%1:max(ds.fa.time)
 
-                if mod(tp/length(timepoints), 0.1) < 0.01
+                if mod(tp, 10) == 0
                     dispstat(['TP ', num2str(tp), ' out of ', num2str(length(timepoints))])
                 end
 
@@ -139,12 +144,13 @@ for frq = 1:length(cfg.frequencies)
 
                 if cfg.pca
                     % do PCA
-                    [ds_pca, ~] = cosmo_map_pca(ds_tp, 'pca_explained_count', 30, 'max_feature_count', 5000);
+                    [ds_pca, ~] = cosmo_map_pca(ds_tp, 'pca_explained_ratio', 0.9, 'max_feature_count', 5000);
                     ds_tp.samples = ds_pca.samples;
                     ds_tp.fa = ds_pca.fa;
                     ds_tp.a = ds_pca.a;
                 end
 
+               
                 if isempty(gcp('nocreate'))
                     parpool(10);
                 end

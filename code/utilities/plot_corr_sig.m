@@ -1,9 +1,9 @@
 function plot_corr_sig(cfg, d)
 
 % evaluate input
-if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 10; end
+if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 20; end
 if ~isfield(cfg, 'p_type'); cfg.p_type = 'p_vals'; end
-if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.1, 0.15]; end
+if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.05, 0.08]; end
 if ~isfield(cfg, 'xlim'); cfg.xlim = [-200, 500]; end
 cfg.plot_preds = 1;
 
@@ -50,7 +50,11 @@ for frq = 1:length(cfg.frequencies)
 
         % compute signifikant time points
         sigMat = d.stats.ISC_RSA.(frqBand).(cfg.p_type);
-        sigMat = sigMat < 0.05;
+        if isempty(sigMat)
+            sigMat = false(length(x), 1);
+        else
+            sigMat = sigMat < 0.05;
+        end 
 
         % get color
         if startsWith(cfg.RDM_to_partial_out{var}, 'typical')

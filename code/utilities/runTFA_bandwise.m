@@ -1,5 +1,8 @@
 function runTFA_bandwise(exp_cfg)
 
+if ~isfield(exp_cfg, 'normalize'); exp_cfg.normalize = false; end
+
+
 % for s = nSubjs
 for s = exp_cfg.subNums
 
@@ -44,10 +47,14 @@ for s = exp_cfg.subNums
     ft_cfg.t_ftimwin    = 4 ./ ft_cfg.foi;
     newTf = ft_freqanalysis(ft_cfg, timelock);
 
-    cfg = [];
-    cfg.baseline     = [-0.5 -0.2];
-    cfg.baselinetype = 'relchange';
-    tf{1} = ft_freqbaseline(cfg, newTf);
+    if exp_cfg.normalize
+        cfg = [];
+        cfg.baseline     = [-0.5 -0.2];
+        cfg.baselinetype = 'relchange';
+        tf{1} = ft_freqbaseline(cfg, newTf);
+    else
+        tf{1} = newTf;
+    end
 
     % beta band
     ft_cfg              = [];
@@ -63,10 +70,14 @@ for s = exp_cfg.subNums
     ft_cfg.tapsmofrq    = 0.4 .* ft_cfg.foi;
     newTf = ft_freqanalysis(ft_cfg, timelock);
 
-    cfg = [];
-    cfg.baseline     = [-0.5 -0.2];
-    cfg.baselinetype = 'relchange';
-    tf{2} = ft_freqbaseline(cfg, newTf);
+    if exp_cfg.normalize
+        cfg = [];
+        cfg.baseline     = [-0.5 -0.2];
+        cfg.baselinetype = 'relchange';
+        tf{2} = ft_freqbaseline(cfg, newTf);
+    else
+        tf{2} = newTf;
+    end
 
     % gamma band
     ft_cfg              = [];
@@ -83,10 +94,14 @@ for s = exp_cfg.subNums
     ft_cfg.tapsmofrq    = 0.4 .* ft_cfg.foi;
     newTf = ft_freqanalysis(ft_cfg, timelock);
 
-    cfg = [];
-    cfg.baseline     = [-0.5 -0.2];
-    cfg.baselinetype = 'relchange';
-    tf{3} = ft_freqbaseline(cfg, newTf);
+    if exp_cfg.normalize
+        cfg = [];
+        cfg.baseline     = [-0.5 -0.2];
+        cfg.baselinetype = 'relchange';
+        tf{3} = ft_freqbaseline(cfg, newTf);
+    else
+        tf{3} = newTf;
+    end
 
     % free memory
     clear timelock_sel
@@ -98,6 +113,7 @@ for s = exp_cfg.subNums
     ft_cfg.appenddim = 'freq';
     tf = ft_appendfreq(ft_cfg, tf{:});
 
+    % save data
     save(fullfile(tfa_path, tfa_filename), 'tf', '-v7.3');
 
     clear tf

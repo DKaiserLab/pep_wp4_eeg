@@ -126,9 +126,9 @@ for frq = 1:length(cfg.frequencies)
         cfg, d, frqBand);
 
     stats.(frqBand).cluster_p = ones(size(r_obs_mean));
-    if ~isempty(d.stats.ISC_RSA.alpha.cluster.all.pvals_cluster)
+    if ~isempty(stats.(frqBand).cluster.all.pvals_cluster)
         cluster_points = stats.(frqBand).cluster.all.obs_clusters.PixelIdxList{:};
-        stats.(frqBand).cluster_p(n_neg_tp + cluster_points) = min(stats.(frqBand).cluster.all.pvals_cluster);
+        stats.(frqBand).cluster_p(cluster_points) = min(stats.(frqBand).cluster.all.pvals_cluster);
     end
 
     % write to data struct
