@@ -83,6 +83,7 @@ for frq = 1:length(cfg.frequencies)
 
                 % create permutations and compute correlations
                 allPerms = nan(cfg.n_permutations, length(squareform(eegRDM)));
+                rng(1)
                 parfor p = 1:cfg.n_permutations
 
                     % shuffle neural RDM

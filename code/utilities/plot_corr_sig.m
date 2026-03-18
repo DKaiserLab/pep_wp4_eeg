@@ -7,11 +7,13 @@ if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.05, 0.08]; end
 if ~isfield(cfg, 'xlim'); cfg.xlim = [-200, 500]; end
 cfg.plot_preds = 1;
 
-
 % create figure and layout
-fig = figure;
+figure;
 set(gcf, 'Units','centimeters', 'Position',[2 2 80 20]);
-tiledlayout(1, length(cfg.frequencies))
+if length(cfg.frequencies) > 1
+    tl = tiledlayout(1, length(cfg.frequencies));
+    title(tl, 'IS-RSA', 'FontWeight', 'bold', 'FontSize', cfg.FontSize +1)
+end
 
 % graphic parameters
 set(0, 'DefaultTextFontSize', cfg.FontSize);
@@ -31,8 +33,14 @@ for frq = 1:length(cfg.frequencies)
     timeseries = d.pairRep.(frqBand).all_time;
     x = timeseries(timepoints)*1000;
 
-    nexttile
-    title(['IS-RSA - ', frqBand], 'FontSize', cfg.FontSize+10, 'FontWeight', 'bold');
+    % create next subplot
+
+    if length(cfg.frequencies) > 1
+        nexttile
+        title(frqBand);
+    else
+        title('IS-RSA')
+    end
     hold on;
 
     % prep time points and variables
@@ -40,9 +48,8 @@ for frq = 1:length(cfg.frequencies)
     g = gobjects(1, length(cfg.RDM_to_partial_out));
 
     for var = 1:cfg.plot_preds
-        % smooth data
-        % plot mean
 
+        % smooth data
         y = d.r_vals.ISC_RSA.(frqBand).r_obs_mean;
         if strcmp(frqBand, 'full')
             y = smoothdata(y, 'movmean', cfg.smoothing_window);
@@ -54,7 +61,7 @@ for frq = 1:length(cfg.frequencies)
             sigMat = false(length(x), 1);
         else
             sigMat = sigMat < 0.05;
-        end 
+        end
 
         % get color
         if startsWith(cfg.RDM_to_partial_out{var}, 'typical')
@@ -65,12 +72,12 @@ for frq = 1:length(cfg.frequencies)
             clr = [.4, .9, 1];
         end
 
-        
+
         % plot emprical distribution [5%, 95%] percentile
         e = d.stats.ISC_RSA.(frqBand).ci;
         boundedline(x, zeros(length(x)), abs(e), 'cmap', [1, 0, 1]);
-        
-        
+
+
         % plot mean
         g(plot_counter) = plot(x, y, 'color', clr, 'LineStyle', '-', 'LineWidth', 5, ...
             'DisplayName', regexprep(cfg.RDM_to_partial_out{var}, "_.*", ""));

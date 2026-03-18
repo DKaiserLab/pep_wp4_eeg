@@ -64,7 +64,7 @@ for frq = 1:length(cfg.frequencies)
 
 
             % progress report
-            disp(['Starting pairwise decoding for subject ',  subID]);
+            disp(['Starting pairwise decoding for subject ',  subID, ' - ', frqBand]);
 
             % get preprocessed data
             if strcmp(frqBand, 'full')
