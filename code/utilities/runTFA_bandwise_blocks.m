@@ -258,7 +258,7 @@ for s = exp_cfg.subNums
                     targetCount = targetCount +1;
 
                     % Define start/end in seconds
-                    t_start = blkEvents(i).sample - blkEvents(1).sample + 250 + blkTrials.iti(i)*Fs; % + 500 ms
+                    t_start = blkEvents(i).sample - blkEvents(1).sample + 250 + blkTrials.iti(i)*Fs; 
                     t_end   = blkEvents(i+1).sample - blkEvents(1).sample;
 
                     % Convert to samples
