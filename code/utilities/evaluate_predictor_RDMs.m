@@ -4,7 +4,7 @@ function [RDMs,labels] = evaluate_predictor_RDMs(d, RDMs, labels, cfg, category)
 n_rdms = length(RDMs);
 labels_rdms = length(labels);
 if n_rdms == labels_rdms
-    disp(' Start evaluating predictor RDMs')
+    % disp(' Start evaluating predictor RDMs')
 else
     warning('RDMs and labels have not the same length')
 end
@@ -169,7 +169,7 @@ end
 
 % check is RDMs and labels have same length
 if length(RDMs) == length(labels)
-    disp('Predictor RDMs evaluated')
+    %disp('Predictor RDMs evaluated')
 else
     warning('RDMs and labels have not the same length')
 end

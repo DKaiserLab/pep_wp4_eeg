@@ -250,12 +250,10 @@ for s = exp_cfg.subNums
             % Mark time windows that are good
             taskFreeTPs = true(1, length(blkTf.time));
 
-            targetCount = 0;
-            for i = 1:height(blkTrials)-1
+             for i = 1:height(blkTrials)-1
 
                 % Only trials WITH response
                 if ~isnan(blkTrials.responseTime(i))
-                    targetCount = targetCount +1;
 
                     % Define start/end in seconds
                     t_start = blkEvents(i).sample - blkEvents(1).sample + 250 + blkTrials.iti(i)*Fs; 
@@ -270,7 +268,6 @@ for s = exp_cfg.subNums
                     taskFreeTPs(windowTPs) = false;
                 end
             end
-            disp(num2str(targetCount))
 
             % Filter for current block
             blkTf.time = blkTf.time(logical(taskFreeTPs));

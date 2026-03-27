@@ -6,16 +6,18 @@ if ~isfield(cfg, 'save_name'); cfg.save_name = 'compare_tp_RDMs_to_stimuli_RDMs'
 if ~isfield(cfg, 'n_permutations'); cfg.n_permutations = 5000;end
 if ~isfield(cfg, 'permutationtest'); cfg.permutationtest = false;end
 if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 1;end
+if ~isfield(cfg, 'ISC_types'); cfg.ISC_types = {'pairRep'};end
 if ~isfield(cfg, 'xlim'); cfg.xlim = [-200, 500]; end
 cfg.plot_rdm = false;
 
 stats = struct;
+ISC_type = cfg.ISC_types{1};
 
 for frq = 1:length(cfg.frequencies)
     frqBand = cfg.frequencies{frq};
 
     % get time points
-    ntimepoints = length(d.pairRep.(frqBand).included_time);
+    ntimepoints = length(d.(ISC_type).(frqBand).included_time);
 
     % prepare permutation test
     if cfg.permutationtest
@@ -48,7 +50,7 @@ for frq = 1:length(cfg.frequencies)
                 subID2 = strrep(subID, '-', '');
 
                 % make a matrix with vectorized RDMs
-                rdm = squeeze(d.pairRep.(subID2).(frqBand).rdm(:,:,tp));
+                rdm = squeeze(d.(ISC_type).(subID2).(frqBand).rdm(:,:,tp));
                 rdm(eye(size(rdm)) == 1) = 0;
 
                 % filter for category
@@ -93,16 +95,16 @@ for frq = 1:length(cfg.frequencies)
             end
 
             % store in structure
-            d.ISC.([category,'_RDM']).(frqBand).pairRep(tp).RDM = mat_out;
-            d.ISC.([category,'_RDM']).(frqBand).pairRep(tp).color = [0, 0, 0];
-            d.ISC.([category,'_RDM']).(frqBand).pairRep(tp).name = (num2str(tp));
-            d.ISC.medianISC.(category).(frqBand).pairRep(tp) = medianISC;
-            d.ISC.medianISC_SE.(category).(frqBand).pairRep(tp) = seISC;
+            d.ISC.([category,'_RDM']).(frqBand).(ISC_type)(tp).RDM = mat_out;
+            d.ISC.([category,'_RDM']).(frqBand).(ISC_type)(tp).color = [0, 0, 0];
+            d.ISC.([category,'_RDM']).(frqBand).(ISC_type)(tp).name = (num2str(tp));
+            d.ISC.medianISC.(category).(frqBand).(ISC_type)(tp) = medianISC;
+            d.ISC.medianISC_SE.(category).(frqBand).(ISC_type)(tp) = seISC;
 
         end % time point
         if cfg.permutationtest
             stats.(frqBand).cluster.(category) = ...
-                stats_cluster(d.ISC.medianISC.(category).(frqBand).pairRep,...
+                stats_cluster(d.ISC.medianISC.(category).(frqBand).(ISC_type),...
                 null_distrib.(category), cfg, d, frqBand);
         end
     end % category
@@ -122,17 +124,17 @@ for frq = 1:length(cfg.frequencies)
         set(gcf, 'color', [1 1 1]);
 
         c = lines(numel(cfg.categories));
-        x = d.pairRep.(frqBand).all_time(d.pairRep.(frqBand).included_time)*1000;
+        x = d.(ISC_type).(frqBand).all_time(d.(ISC_type).(frqBand).included_time)*1000;
         h = gobjects(1, length(cfg.categories)); % +1
-        max_ISC = round(max([d.ISC.medianISC.bathroom.(frqBand).pairRep,...
-            d.ISC.medianISC.kitchen.(frqBand).pairRep]), 2);
-        min_ISC = round(min([d.ISC.medianISC.bathroom.(frqBand).pairRep,...
-            d.ISC.medianISC.kitchen.(frqBand).pairRep]), 2);
+        max_ISC = round(max([d.ISC.medianISC.bathroom.(frqBand).(ISC_type),...
+            d.ISC.medianISC.kitchen.(frqBand).(ISC_type)]), 2);
+        min_ISC = round(min([d.ISC.medianISC.bathroom.(frqBand).(ISC_type),...
+            d.ISC.medianISC.kitchen.(frqBand).(ISC_type)]), 2);
 
         for icat=1:length(cfg.categories)
             category = cfg.categories{icat};
-            y = smoothdata(d.ISC.medianISC.(category).(frqBand).pairRep, 'movmean', cfg.smoothing_window);
-            se = d.ISC.medianISC_SE.(category).(frqBand).pairRep;
+            y = smoothdata(d.ISC.medianISC.(category).(frqBand).(ISC_type), 'movmean', cfg.smoothing_window);
+            se = d.ISC.medianISC_SE.(category).(frqBand).(ISC_type);
 
             % plot median ISC
             h(icat)=plot(x, y, 'color', c(icat, :), 'LineWidth', 5, 'DisplayName', category);
@@ -160,8 +162,8 @@ for frq = 1:length(cfg.frequencies)
 
         end
 
-        %     y1 = d.ISC.medianISC.bathroom.pairRep;
-        %     y2 = d.ISC.medianISC.kitchen.pairRep;
+        %     y1 = d.ISC.medianISC.bathroom.(ISC_type);
+        %     y2 = d.ISC.medianISC.kitchen.(ISC_type);
         %     y = mean([y1; y2]);
         %     y = smoothdata(y, 2, 'movmean', cfg.smoothing_window);
         %     h(icat+1)=plot(x, y, 'color', 'black', 'LineWidth', 2);

@@ -82,7 +82,7 @@ for s = cfg.subNums
     cfg_temp.dataset = fileNameIn;
     cfg_temp.trl     = trl;
 
-    % ✅ Recommended filtering
+    % filtering
     cfg_temp.hpfilter = 'yes';
     cfg_temp.hpfreq   = 0.5;
     cfg_temp.hpfilttype  = 'firws';
@@ -143,7 +143,7 @@ for s = cfg.subNums
     % ICA (on filtered copy!)
     % -------------------------
     
-    % 🔴 Create ICA-optimized copy
+    % Create ICA-optimized copy
     cfg_ica = [];
     cfg_ica.hpfilter = 'yes';
     cfg_ica.hpfreq   = 1;   % stronger HP for ICA

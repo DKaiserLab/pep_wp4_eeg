@@ -21,6 +21,7 @@ end
 
 % get group average
 if cfg.regressOutMean
+
     % get mean
     groupMean = mean(mat_in, 2, 'omitnan');
 
