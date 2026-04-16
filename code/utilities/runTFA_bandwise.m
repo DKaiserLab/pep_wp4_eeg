@@ -9,7 +9,7 @@ for s = exp_cfg.subNums
 
     % get paths and filenames
     prepro_path = fullfile(exp_cfg.outputPath, ['sub-', num2str(s)], 'eeg');
-    prepro_filename = ['PEP_WP4_EEG', num2str(s), '_timelock_reref_s2.mat'];
+    prepro_filename = ['PEP_WP4_EEG', num2str(s), '_timelock_reref_s2', fltTag, '.mat'];
     tfa_path = fullfile(exp_cfg.outputPath, ['sub-', num2str(s)], 'eeg');
     tfa_filename = ['PEP_WP4_EEG', num2str(s), '_tfa.mat'];
 
