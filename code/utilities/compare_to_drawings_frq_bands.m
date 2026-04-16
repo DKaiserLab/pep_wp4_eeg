@@ -56,7 +56,7 @@ for frq = 1:length(cfg.frequencies)
         uniquePred = all_preds(:,1) - X*b;
 
         % init RDM
-        idx = find(strcmp({d.ISC.kitchen_RDM.beta.blockTfa.name}, 'average'));
+        idx = find(strcmp({d.ISC.kitchen_RDM.(frqBand).blockTfa.name}, 'average'));
         eegRDM = d.ISC.([category,'_RDM']).(frqBand).blockTfa(idx).RDM;
         eegRDM(eye(size(eegRDM)) == 1) = 0;
         r_obs(c) = corr(squareform(eegRDM)', uniquePred, 'row', 'pairwise', 'type', correlation_type);

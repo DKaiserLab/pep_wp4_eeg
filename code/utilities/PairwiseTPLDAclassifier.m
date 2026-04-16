@@ -2,7 +2,8 @@ function [res, meanAcc, cfg] = PairwiseTPLDAclassifier(cfg)
 
 % evaluate input
 if ~isfield(cfg, 'plotting'); cfg.plotting = true; end
-if ~isfield(cfg, 'pca'); cfg.pca = false; end
+if ~isfield(cfg, 'pca'); cfg.pca = true; end
+if ~isfield(cfg, 'frqFilter'); cfg.frqFilter = true; end
 if ~isfield(cfg, 'zscore'); cfg.zscore = true; end
 if ~isfield(cfg, 'frequencies'); cfg.frequencies = {'full'}; end
 if ~isfield(cfg, 'decoding_start'); cfg.decoding_start = -0.2; end
@@ -39,6 +40,11 @@ for frq = 1:length(cfg.frequencies)
         avgTag = '_avg';
     end
 
+    fltTag = [];
+    if cfg.frqFilter
+        fltTag = '_filtered';
+    end
+
     pcaTag = [];
     if cfg.pca
         pcaTag = '_pca';
@@ -53,7 +59,7 @@ for frq = 1:length(cfg.frequencies)
         % make file name
         fileName = fullfile(cfg.outputPath, subID, 'eeg',...
             ['PEP_WP4_EEG_', num2str(cfg.subNums(iSub)), '_pairwise_decoding'...
-            freqTag, avgTag, pcaTag, ...
+            freqTag, avgTag, pcaTag, fltTag, ...
             '.mat']);
 
         % load data if exist
@@ -69,7 +75,7 @@ for frq = 1:length(cfg.frequencies)
             % get preprocessed data
             if strcmp(frqBand, 'full')
                 filepath = fullfile(cfg.outputPath, ['sub-', num2str(cfg.subNums(iSub))], 'eeg',...
-                    ['PEP_WP4_EEG', num2str(cfg.subNums(iSub)), '_timelock_reref_s2', '.mat']);
+                    ['PEP_WP4_EEG', num2str(cfg.subNums(iSub)), '_timelock_reref_s2', fltTag, '.mat']);
             else
                 currentBand = cfg.frqBands.(frqBand);
                 filepath = fullfile(cfg.outputPath, ['sub-', num2str(cfg.subNums(iSub))], 'eeg',...

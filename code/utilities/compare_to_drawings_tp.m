@@ -6,12 +6,12 @@ if ~isfield(cfg, 'correlation_type'); cfg.correlation_type = 'pearson'; end
 if ~isfield(cfg, 'partial_cor'); cfg.partial_cor = true; end
 if ~isfield(cfg, 'n_permutations'); cfg.n_permutations = 5000; end
 if ~isfield(cfg, 'cluster'); cfg.cluster = true; end
+if ~isfield(cfg, 'ISC_type'); cfg.ISC_type = 'pairRep'; end
 if ~isfield(cfg, 'FDR'); cfg.FDR = true; end
 correlation_type = cfg.correlation_type;
 plottingPreds = 1;
 
 cfg.plot_rdm = false;
-cfg.ISC_type = 'pairRep';
 partial = cfg.partial_cor;
 
 
