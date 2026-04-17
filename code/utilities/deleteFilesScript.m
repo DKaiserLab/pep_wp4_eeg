@@ -2,7 +2,7 @@
 main_dir = fullfile(pwd, '..'); % Change this to your directory
 
 % Get list of all nii files in subdirectories
-files = dir(fullfile(main_dir, '**', 'PEP_WP4_EEG*_pairwise_decoding_gamma_avg_pca.mat'));
+files = dir(fullfile(main_dir, '**', 'PEP_WP4_EEG*_tfa.mat'));
 
 % % Create output directory if wanted
 % output_dir = fullfile(pwd, '..', 'dnn_features');

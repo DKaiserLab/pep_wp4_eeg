@@ -8,6 +8,7 @@ if ~isfield(cfg, 'frequencies'); cfg.frequencies = {'full'}; end
 if ~isfield(cfg, 'pISC_start'); cfg.pISC_start = -0.2; end
 if ~isfield(cfg, 'pISC_end'); cfg.pISC_end = 0.5; end
 if ~isfield(cfg, 'nBlocks'); cfg.nBlocks = 20; end
+if ~isfield(cfg, 'regressOutMean'); cfg.regressOutMean = true; end
 
 % Define frequency bands
 cfg.frqBands.alpha = [8, 12];
@@ -32,10 +33,15 @@ for frq = 1:length(cfg.frequencies)
         fltTag = '_filtered';
     end
 
+    regMeanTag = [];
+    if cfg.regressOutMean
+        regMeanTag = 'regMean';
+    end
+
     % make file name
     folderOut = fullfile(cfg.outputPath, 'group_level', 'pISC');
     fileName = fullfile(folderOut, ...
-        ['PEP_WP4_EEG_pISC', freqTag, fltTag, '.mat']);
+        ['PEP_WP4_EEG_pISC', freqTag, fltTag, regMeanTag, '.mat']);
 
     % load data if exist
     if exist(fileName, 'file')
@@ -48,15 +54,15 @@ for frq = 1:length(cfg.frequencies)
             % Write RDM to struct
             pISC_bat = pISC_mat(tp, 1:cfg.nTrials/2, :);
             pISC_bat_avg = squeeze(mean(pISC_bat));
-            d.ISC.bathroom_RDM.full.pISC(tp).RDM = squareform(pISC_bat_avg);
-            d.ISC.bathroom_RDM.full.pISC(tp).color = [0,0,0];
-            d.ISC.bathroom_RDM.full.pISC(tp).name = num2str(tp);
+            d.ISC.bathroom_RDM.(frqBand).pISC(tp).RDM = squareform(pISC_bat_avg);
+            d.ISC.bathroom_RDM.(frqBand).pISC(tp).color = [0,0,0];
+            d.ISC.bathroom_RDM.(frqBand).pISC(tp).name = num2str(tp);
 
             pISC_kit = pISC_mat(tp, 1:cfg.nTrials/2, :);
             pISC_kit_avg = squeeze(mean(pISC_kit));
-            d.ISC.kitchen_RDM.full.pISC(tp).RDM = squareform(pISC_kit_avg);
-            d.ISC.kitchen_RDM.full.pISC(tp).color = [0,0,0];
-            d.ISC.kitchen_RDM.full.pISC(tp).name = num2str(tp);
+            d.ISC.kitchen_RDM.(frqBand).pISC(tp).RDM = squareform(pISC_kit_avg);
+            d.ISC.kitchen_RDM.(frqBand).pISC(tp).color = [0,0,0];
+            d.ISC.kitchen_RDM.(frqBand).pISC(tp).name = num2str(tp);
 
             % store timing
             d.(cfg.ISC_type).(frqBand).included_time = included_time;
@@ -156,7 +162,7 @@ for frq = 1:length(cfg.frequencies)
 
             % loop through subjects to collect data
             tp_mat = nan(cfg.nTrials,nChannels, cfg.n);
-            parfor iSub = 1:length(cfg.subNums)
+            for iSub = 1:length(cfg.subNums)
 
                 % select time point
                 tp_idx = timepoints(tp);
@@ -170,8 +176,7 @@ for frq = 1:length(cfg.frequencies)
             end
 
             % loop through trials
-            cfg.regressOutMean = false;
-            parfor tr = 1:cfg.nTrials
+            for tr = 1:cfg.nTrials
 
                 % get ISC
                 [~, mat_out, ~] = make_RDM(squeeze(tp_mat(tr, :, :)), cfg);
@@ -183,15 +188,15 @@ for frq = 1:length(cfg.frequencies)
             % Write RDM to struct
             pISC_bat = pISC_mat(tp, 1:cfg.nTrials/2, :);
             pISC_bat_avg = squeeze(mean(pISC_bat));
-            d.ISC.bathroom_RDM.full.pISC(tp).RDM = squareform(pISC_bat_avg);
-            d.ISC.bathroom_RDM.full.pISC(tp).color = [0,0,0];
-            d.ISC.bathroom_RDM.full.pISC(tp).name = num2str(tp);
+            d.ISC.bathroom_RDM.(frqBand).pISC(tp).RDM = squareform(pISC_bat_avg);
+            d.ISC.bathroom_RDM.(frqBand).pISC(tp).color = [0,0,0];
+            d.ISC.bathroom_RDM.(frqBand).pISC(tp).name = num2str(tp);
 
             pISC_kit = pISC_mat(tp, 1:cfg.nTrials/2, :);
             pISC_kit_avg = squeeze(mean(pISC_kit));
-            d.ISC.kitchen_RDM.full.pISC(tp).RDM = squareform(pISC_kit_avg);
-            d.ISC.kitchen_RDM.full.pISC(tp).color = [0,0,0];
-            d.ISC.kitchen_RDM.full.pISC(tp).name = num2str(tp);
+            d.ISC.kitchen_RDM.(frqBand).pISC(tp).RDM = squareform(pISC_kit_avg);
+            d.ISC.kitchen_RDM.(frqBand).pISC(tp).color = [0,0,0];
+            d.ISC.kitchen_RDM.(frqBand).pISC(tp).name = num2str(tp);
 
         end % tp
 

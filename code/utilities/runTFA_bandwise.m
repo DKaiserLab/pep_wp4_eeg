@@ -1,7 +1,12 @@
 function runTFA_bandwise(exp_cfg)
 
 if ~isfield(exp_cfg, 'normalize'); exp_cfg.normalize = false; end
+if ~isfield(exp_cfg, 'frqFilter'); exp_cfg.frqFilter = false; end
 
+fltTag = [];
+if exp_cfg.frqFilter
+    fltTag = '_filtered';
+end
 
 % for s = nSubjs
 for s = exp_cfg.subNums

@@ -5,6 +5,7 @@ if ~isfield(cfg, 'smoothing_window'); cfg.smoothing_window = 20; end
 if ~isfield(cfg, 'p_type'); cfg.p_type = 'p_vals'; end
 if ~isfield(cfg, 'ylim'); cfg.ylim = [-0.05, 0.08]; end
 if ~isfield(cfg, 'xlim'); cfg.xlim = [-200, 500]; end
+if ~isfield(cfg, 'ISC_type'); cfg.ISC_type = 'pairRep'; end
 cfg.plot_preds = 1;
 
 % create figure and layout
@@ -29,8 +30,8 @@ for frq = 1:length(cfg.frequencies)
 
 
     % prep time points and variables
-    timepoints = d.pairRep.(frqBand).included_time;
-    timeseries = d.pairRep.(frqBand).all_time;
+    timepoints = d.(cfg.ISC_type).(frqBand).included_time;
+    timeseries = d.(cfg.ISC_type).(frqBand).all_time;
     x = timeseries(timepoints)*1000;
 
     % create next subplot

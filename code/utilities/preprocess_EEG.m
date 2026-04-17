@@ -17,7 +17,8 @@ for s=cfg.subNums% for each subject
     %% Specify input and output file name
 
     fileNameIn = fullfile(cfg.sourcedataPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '.eeg']);
-    fileNameOut = fullfile(cfg.outputPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock_reref_s2_filtered.mat']);
+    fileNameOut = fullfile(cfg.outputPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock_reref_s2.mat']);    
+    %fileNameOut = fullfile(cfg.outputPath, ['sub-', num2str(s)], 'eeg', ['PEP_WP4_EEG', num2str(s), '_timelock_reref_s2_filtered.mat']);
 
     if exist(fileNameOut, 'file')
         disp(['Pre-processed data for ', ['sub-', num2str(s)], ' exist already', newline]);
@@ -39,19 +40,19 @@ for s=cfg.subNums% for each subject
     
     %% Load Data and Preprocess Data
 
-    %cfg_temp.hpfilter='no';
-    %cfg_temp.lpfilter='no';
+    cfg_temp.hpfilter='no';
+    cfg_temp.lpfilter='no';
     cfg_temp.bsfilter='yes';
     cfg_temp.bsfreq=[48 52];
 
-    % filtering
-    cfg_temp.hpfilter = 'yes';
-    cfg_temp.hpfreq   = 0.5;
-    cfg_temp.hpfilttype  = 'firws';
-
-    cfg_temp.lpfilter = 'yes';
-    cfg_temp.lpfreq   = 100;
-    cfg_temp.hpfilttype  = 'firws';
+%     % filtering
+%     cfg_temp.hpfilter = 'yes';
+%     cfg_temp.hpfreq   = 0.5;
+%     cfg_temp.hpfilttype  = 'firws';
+% 
+%     cfg_temp.lpfilter = 'yes';
+%     cfg_temp.lpfreq   = 100;
+%     cfg_temp.hpfilttype  = 'firws';
 
     % filter
     %     cfg_temp.bpfilter = 'yes';

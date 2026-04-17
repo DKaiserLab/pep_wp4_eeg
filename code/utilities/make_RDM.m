@@ -26,15 +26,17 @@ if cfg.regressOutMean
     groupMean = mean(mat_in, 2, 'omitnan');
 
     % loop through subjects and regress out mean
-    regressedMat = zeros(size(mat_in));
+    regressedMat = nan(size(mat_in));
     for iCol = 1:width(mat_in)
+        % Get current values
+        colVals = mat_in(:, iCol);
         % Design matrix: group-average and intercept
-        X = [groupMean, ones(height(mat_in), 1)];
+        X = [groupMean(~isnan(colVals)), ones(sum((~isnan(colVals))), 1)];
         % Perform regression
-        beta = X \ mat_in(:, iCol); % Compute coefficients
+        beta = X \ colVals(~isnan(colVals)); % Compute coefficients
         predicted = X * beta; % Predicted values based on the group average
         % Residual (indivdual column with group average regressed out)
-        regressedMat(:, iCol) = mat_in(:, iCol) - predicted;
+        regressedMat((~isnan(colVals)), iCol) = colVals(~isnan(colVals)) - predicted;
     end
 
     % overwrite the matrix

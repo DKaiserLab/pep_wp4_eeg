@@ -1,15 +1,21 @@
 % --- CONFIGURATION ---
-sourceRoot =  'D:\pep_wp4_eeg\sourcedata';   % i.e., path to project backup on hard drive
-targetRoot = 'C:\Users\JLU-SU\OneDrive - Justus-Liebig-Universität Gießen\Dokumente\GitHub\pep_wp4_eeg\sourcedata'; % i.e., path to project folder on laptop
-filePattern = '*.eeg'; % files of interest
+sourceRoot =  'C:\Users\JLU-SU\OneDrive - Justus-Liebig-Universität Gießen\Dokumente\GitHub\pep_wp4_eeg\derivatives';  % i.e., path to project backup on hard drive
+targetRoot = 'D:\pep_wp4_eeg\derivatives'; % i.e., path to project folder on laptop
+filePattern = 'PEP_WP4_EEG*_tfa.mat'; % files of interest
 
 % --- FIND FILES ---
 % Get list of all files starting with swsub recursively
 files = dir(fullfile(sourceRoot, '**', filePattern));
-
 fprintf('Found %d files to copy.\n', numel(files));
 
 for i = 1:numel(files)
+
+    % Skip if directory
+    if files(i).isdir == 1
+        continue
+    end
+
+
     % Full path to the source file on the hard drive
     srcFile = fullfile(files(i).folder, files(i).name);
 
@@ -28,11 +34,11 @@ for i = 1:numel(files)
     destFile = fullfile(destFolder, files(i).name);
 
     % Skip existing files
-    if exist(destFile, 'file')
-        fprintf('Skip: File %s exists already', destFile);
-        disp(newline)
-        continue
-    end
+%     if exist(destFile, 'file')
+%         fprintf('Skip: File %s exists already', destFile);
+%         disp(newline)
+%         continue
+%     end
 
 %     if contains(destFile,  {'sub-118', 'sub-125', 'sub-131'})
 %         fprintf('Skip %s. Excluded subject', destFile);
